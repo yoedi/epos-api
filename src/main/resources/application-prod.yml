@@ -1,0 +1,5 @@
+# All values come from environment variables; the app fails to start if any is missing.
+epos:
+  cors:
+    # Comma-separated list of allowed frontend origins, e.g. https://kasir.example.com
+    allowed-origins: ${EPOS_CORS_ALLOWED_ORIGINS}

@@ -1,0 +1,4 @@
+# Datasource is provided by Testcontainers (@ServiceConnection), see TestcontainersConfiguration.
+spring:
+  flyway:
+    locations: classpath:db/migration
