@@ -5,10 +5,10 @@ import com.yoedi.epos.category.dto.CategoryResponse;
 import com.yoedi.epos.category.mapper.CategoryMapper;
 import com.yoedi.epos.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -24,9 +24,8 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<CategoryResponse> findAll() {
-        return categoryRepository.findAll().stream()
-                .sorted(Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(this::toResponse)
+        return categoryRepository.findAllWithProductCount().stream()
+                .map(row -> new CategoryResponse(row.getId(), row.getName(), row.getProductCount()))
                 .toList();
     }
 
@@ -38,7 +37,13 @@ public class CategoryService {
         }
         Category category = new Category();
         category.setName(name);
-        return toResponse(categoryRepository.save(category));
+        try {
+            // Flush now so a concurrent insert of the same name (unique index) surfaces here as 409, not as a 500 at commit.
+            category = categoryRepository.saveAndFlush(category);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateCategoryException(name);
+        }
+        return toResponse(category);
     }
 
     @Transactional
@@ -51,6 +56,11 @@ public class CategoryService {
                     throw new DuplicateCategoryException(name);
                 });
         category.setName(name);
+        try {
+            categoryRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateCategoryException(name);
+        }
         return toResponse(category);
     }
 
@@ -61,7 +71,13 @@ public class CategoryService {
         if (productCount > 0) {
             throw new CategoryInUseException(category.getName(), productCount);
         }
-        categoryRepository.delete(category);
+        try {
+            categoryRepository.delete(category);
+            categoryRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            // A product was added after the count above; the FK (ON DELETE RESTRICT) rejected the delete.
+            throw new CategoryInUseException(category.getName());
+        }
     }
 
     private Category findEntity(long id) {
@@ -70,8 +86,7 @@ public class CategoryService {
     }
 
     private CategoryResponse toResponse(Category category) {
-        CategoryResponse base = categoryMapper.toResponse(category);
-        return new CategoryResponse(base.id(), base.name(), categoryRepository.countProducts(category.getId()));
+        return categoryMapper.toResponse(category, categoryRepository.countProducts(category.getId()));
     }
 
     private static String normalize(String name) {

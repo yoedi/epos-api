@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,6 +33,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ResponseEntity<ProblemDetail> handleBusiness(BusinessException ex) {
         ProblemDetail problem = problem(ex.getCode().status(), ex.getTitle(), ex.getDetail(), ex.getCode());
         return ResponseEntity.status(ex.getCode().status()).body(problem);
+    }
+
+    // Thrown by @PreAuthorize when the role is not allowed; must not fall through to the 500 handler.
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
+        ProblemDetail problem = problem(HttpStatus.FORBIDDEN, titleFor(ErrorCode.FORBIDDEN),
+                detailFor(ErrorCode.FORBIDDEN), ErrorCode.FORBIDDEN);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

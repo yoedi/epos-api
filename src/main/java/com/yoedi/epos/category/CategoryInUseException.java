@@ -10,4 +10,10 @@ public class CategoryInUseException extends BusinessException {
         super(ErrorCode.CATEGORY_IN_USE, "Kategori masih digunakan",
                 "Kategori " + name + " masih memiliki " + productCount + " produk");
     }
+
+    /** Used when the count is unknown (the FK rejected the delete after a concurrent insert). */
+    public CategoryInUseException(String name) {
+        super(ErrorCode.CATEGORY_IN_USE, "Kategori masih digunakan",
+                "Kategori " + name + " masih memiliki produk");
+    }
 }

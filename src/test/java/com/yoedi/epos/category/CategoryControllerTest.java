@@ -10,6 +10,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@WithMockUser(roles = "OWNER")
 @Import(TestcontainersConfiguration.class)
 class CategoryControllerTest {
 
@@ -35,8 +38,12 @@ class CategoryControllerTest {
     @Autowired
     private CategoryRepository categoryRepository;
 
+    @Autowired
+    private JdbcTemplate jdbc;
+
     @BeforeEach
     void cleanUp() {
+        jdbc.update("delete from products");
         categoryRepository.deleteAll();
     }
 
@@ -117,6 +124,91 @@ class CategoryControllerTest {
         mockMvc.perform(delete("/api/categories/{id}", 999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void find_returns_product_count_and_sorts_by_name() throws Exception {
+        Category sembako = categoryRepository.save(category("sembako"));
+        categoryRepository.save(category("Minuman"));
+        insertProduct(sembako.getId(), "SKU-1");
+        insertProduct(sembako.getId(), "SKU-2");
+
+        mockMvc.perform(get("/api/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Minuman"))
+                .andExpect(jsonPath("$[0].product_count").value(0))
+                .andExpect(jsonPath("$[1].name").value("sembako"))
+                .andExpect(jsonPath("$[1].product_count").value(2));
+    }
+
+    @Test
+    void create_trimsName() throws Exception {
+        mockMvc.perform(post("/api/categories")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CategoryRequest("  Snack  "))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Snack"));
+    }
+
+    @Test
+    void create_nameTooLong_returns400() throws Exception {
+        mockMvc.perform(post("/api/categories")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CategoryRequest("x".repeat(101)))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void update_duplicateOfOtherCategory_returns409() throws Exception {
+        categoryRepository.save(category("Sembako"));
+        Category other = categoryRepository.save(category("Minuman"));
+
+        mockMvc.perform(patch("/api/categories/{id}", other.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CategoryRequest("SEMBAKO"))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DUPLICATE_CATEGORY"));
+    }
+
+    @Test
+    void update_changeOnlyLetterCaseOfOwnName_returns200() throws Exception {
+        Category existing = categoryRepository.save(category("sembako"));
+
+        mockMvc.perform(patch("/api/categories/{id}", existing.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CategoryRequest("Sembako"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Sembako"));
+    }
+
+    @Test
+    void delete_withProducts_returns409_with_code_and_count() throws Exception {
+        Category existing = categoryRepository.save(category("Sembako"));
+        insertProduct(existing.getId(), "SKU-1");
+        insertProduct(existing.getId(), "SKU-2");
+
+        mockMvc.perform(delete("/api/categories/{id}", existing.getId()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CATEGORY_IN_USE"))
+                .andExpect(jsonPath("$.detail").value("Kategori Sembako masih memiliki 2 produk"));
+    }
+
+    @Test
+    @WithMockUser(roles = "CASHIER")
+    void write_asCashier_returns403_but_list_is_allowed() throws Exception {
+        mockMvc.perform(post("/api/categories")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CategoryRequest("Snack"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+        mockMvc.perform(delete("/api/categories/{id}", 1L)).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/categories")).andExpect(status().isOk());
+    }
+
+    private void insertProduct(long categoryId, String sku) {
+        jdbc.update("insert into products (sku, name, category_id, unit, cost_price, sell_price) "
+                + "values (?, ?, ?, 'PCS', 1000, 1500)", sku, "Produk " + sku, categoryId);
     }
 
     private static Category category(String name) {
