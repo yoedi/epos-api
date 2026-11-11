@@ -1,78 +1,78 @@
-# ePOS API — Panduan Proyek
+# ePOS API — Project Guide
 
-Backend REST API untuk aplikasi kasir (POS) toko kelontong.
+Backend REST API for a point-of-sale (POS) app for a toko kelontong (small grocery store).
 
-Frontend Angular berada di repo terpisah (`epos-web-ngmodule`, dan nantinya `epos-web` versi standalone) dan berkomunikasi **hanya** lewat REST API ini. Frontend sudah hampir selesai dibangun di atas kontrak di `docs/api-spec.md`.
+The Angular frontend lives in separate repos (`epos-web-ngmodule`, and later a standalone `epos-web`) and talks to this REST API **only**. The frontend is almost finished, built on the contract in `docs/api-spec.md`.
 
-Dokumen acuan: `docs/PRD-ePOS-Toko-Kelontong.md` (model data ada di poin 14) dan `docs/api-spec.md`.
+Reference documents: `docs/PRD-ePOS-Toko-Kelontong.md` (data model in section 14) and `docs/api-spec.md`.
 
 ---
 
-## 0. Kontrak API sudah dipakai frontend
+## 0. The API contract is already in use by the frontend
 
-`docs/api-spec.md` bukan rancangan, melainkan kontrak yang **sudah diimplementasikan di sisi frontend**. Konsekuensinya:
+`docs/api-spec.md` is not a draft; it is a contract that has **already been implemented on the frontend side**. Consequences:
 
-- Nama field, bentuk response, kode HTTP, dan nilai `code` pada error **tidak boleh diubah** tanpa alasan kuat.
-- Jika sebuah endpoint memang harus berubah, perbarui `docs/api-spec.md` di commit yang sama dan sebutkan perubahannya secara eksplisit di pesan commit, supaya sisi frontend bisa menyesuaikan.
-- Jangan "memperbaiki" penamaan menjadi lebih rapi (misalnya `change_amount` → `change`) hanya karena terlihat lebih baik.
+- Field names, response shapes, HTTP codes, and error `code` values **must not change** without a strong reason.
+- If an endpoint truly must change, update `docs/api-spec.md` in the same commit and state the change explicitly in the commit message so the frontend can adapt.
+- Do not "fix" naming to make it tidier (for example `change_amount` → `change`) just because it looks better.
 
 ---
 
 ## 1. Tech Stack
 
-| Bagian | Pilihan |
-|---|---|
-| Bahasa | Java 21 |
-| Framework | Spring Boot 3.3.x |
-| Build tool | Maven |
-| Database | PostgreSQL 16 |
-| ORM | Spring Data JPA (Hibernate) |
-| Migrasi DB | Flyway |
-| Keamanan | Spring Security + JWT (jjwt) |
-| Validasi | Bean Validation (Jakarta) |
-| Dokumentasi API | springdoc-openapi (Swagger UI) |
-| Mapping DTO | MapStruct |
-| Boilerplate | Lombok |
-| Testing | JUnit 5, AssertJ, Testcontainers, MockMvc |
-| Container | Docker + Docker Compose |
+| Part         | Choice                                    |
+| ------------ | ----------------------------------------- |
+| Language     | Java 21                                   |
+| Framework    | Spring Boot 3.3.x                         |
+| Build tool   | Maven                                     |
+| Database     | PostgreSQL 16                             |
+| ORM          | Spring Data JPA (Hibernate)               |
+| DB migration | Flyway                                    |
+| Security     | Spring Security + JWT (jjwt)              |
+| Validation   | Bean Validation (Jakarta)                 |
+| API docs     | springdoc-openapi (Swagger UI)            |
+| DTO mapping  | MapStruct                                 |
+| Boilerplate  | Lombok                                    |
+| Testing      | JUnit 5, AssertJ, Testcontainers, MockMvc |
+| Container    | Docker + Docker Compose                   |
 
-**Aturan dependency:** jangan menambah dependency baru tanpa alasan jelas. Utamakan yang sudah tersedia di Spring Boot.
+**Dependency rule:** do not add new dependencies without a clear reason. Prefer what Spring Boot already provides.
 
 ---
 
-## 2. Arsitektur
+## 2. Architecture
 
-Seluruh package memakai **layered architecture** yang sama.
+All packages use the same **layered architecture**.
 
 ```
 Controller  →  Service  →  Repository  →  Database
-   (DTO)       (logika)      (entity)
+   (DTO)       (logic)      (entity)
 ```
 
-Proyek ini **sengaja tidak** memakai clean architecture (model domain terpisah, port/adapter, use case). Untuk aplikasi seukuran ini, lapisan tambahan sebagian besar hanya menghasilkan mapper dan boilerplate. Catat keputusan ini di README sebagai trade-off yang disadari.
+This project deliberately does **not** use clean architecture (separate domain model, ports/adapters, use cases). For an app this size, the extra layers mostly just produce mappers and boilerplate. Record this decision in the README as a conscious trade-off.
 
-Aturan yang tidak boleh dilanggar:
+Rules that must not be broken:
 
-1. **Controller tidak berisi logika bisnis.** Hanya menerima request, memvalidasi bentuknya, memanggil service, mengembalikan response.
-2. **Entity JPA tidak pernah keluar dari lapisan service.** Controller selalu menerima dan mengembalikan DTO.
-3. **Repository hanya dipanggil dari service**, tidak pernah langsung dari controller.
-4. **Logika bisnis ada di service**, bukan di controller atau entity.
-5. **Tidak ada siklus dependency antar service.** Jika butuh data dari feature lain, panggil service-nya, bukan repository-nya.
+1. **Controllers contain no business logic.** They only receive requests, validate their shape, call a service, and return a response.
+2. **JPA entities never leave the service layer.** Controllers always accept and return DTOs.
+3. **Repositories are only called from services**, never directly from controllers.
+4. **Business logic lives in services**, not in controllers or entities.
+5. **No dependency cycles between services.** If you need data from another feature, call its service, not its repository.
 
-### Pengecualian kecil di `sale`
+### Small exception in `sale`
 
-`SaleService` memuat aturan bisnis paling padat: validasi stok, hitung ulang total, cek pembayaran, penomoran invoice. Agar tetap bisa diuji cepat, **pisahkan perhitungan murninya** ke kelas helper tanpa dependency Spring di package `sale`:
+`SaleService` holds the densest business rules: stock validation, total recalculation, payment check, invoice numbering. To keep it quickly testable, **extract the pure calculations** into helper classes with no Spring dependencies in the `sale` package:
 
-- `SaleCalculator` — hitung subtotal per item, total, dan kembalian.
+- `SaleCalculator` — computes per-item subtotal, total, and change.
 - `InvoiceNumberGenerator` — format `INV-YYYYMMDD-NNNN`.
 
-Keduanya kelas biasa tanpa anotasi, diuji dengan unit test tanpa database. Urusan transaksi, locking, dan penyimpanan tetap di `SaleService`. Jangan memperluas ini menjadi lapisan domain atau use case.
+Both are plain classes without annotations, tested with unit tests without a database. Transactions, locking, and persistence stay in `SaleService`. Do not expand this into a domain layer or use cases.
 
 ---
 
-## 3. Struktur Package
+## 3. Package Structure
 
-Package-by-feature, bukan package-by-layer.
+Package-by-feature, not package-by-layer.
 
 ```
 com.yoedi.epos
@@ -95,86 +95,86 @@ com.yoedi.epos
 
 ---
 
-## 4. Konvensi Penamaan
+## 4. Naming Conventions
 
-| Jenis | Pola | Contoh |
-|---|---|---|
-| Tabel & kolom DB | `snake_case`, tabel jamak | `sale_items`, `sell_price` |
-| Entity JPA | `PascalCase` tunggal | `SaleItem` |
-| Field Java | `camelCase` | `sellPrice` |
-| JSON request/response | `snake_case` | `"sell_price": 36500` |
-| DTO request | `<Aksi><Entity>Request` | `CreateProductRequest` |
-| DTO response | `<Entity>Response` | `ProductResponse` |
-| Method repository | `findBy...`, `existsBy...` | `findByBarcode` |
-| File migrasi Flyway | `V<n>__deskripsi.sql` | `V1__init.sql` |
-| Branch git | `feat/`, `fix/`, `chore/` | `feat/sale-transaction` |
-| Commit | Conventional Commits | `feat(sale): add checkout endpoint` |
+| Kind                  | Pattern                     | Example                             |
+| --------------------- | --------------------------- | ----------------------------------- |
+| DB tables & columns   | `snake_case`, plural tables | `sale_items`, `sell_price`          |
+| JPA entity            | singular `PascalCase`       | `SaleItem`                          |
+| Java field            | `camelCase`                 | `sellPrice`                         |
+| JSON request/response | `snake_case`                | `"sell_price": 36500`               |
+| Request DTO           | `<Action><Entity>Request`   | `CreateProductRequest`              |
+| Response DTO          | `<Entity>Response`          | `ProductResponse`                   |
+| Repository method     | `findBy...`, `existsBy...`  | `findByBarcode`                     |
+| Flyway migration file | `V<n>__description.sql`     | `V1__init.sql`                      |
+| Git branch            | `feat/`, `fix/`, `chore/`   | `feat/sale-transaction`             |
+| Commit                | Conventional Commits        | `feat(sale): add checkout endpoint` |
 
-Konversi `camelCase` Java ke `snake_case` JSON diatur sekali lewat `PropertyNamingStrategies.SNAKE_CASE` di `JacksonConfig`, bukan dengan `@JsonProperty` di tiap field.
-
----
-
-## 5. Aturan Data (wajib dipatuhi)
-
-Ringkasan dari PRD poin 14.4:
-
-- **Uang** disimpan sebagai `long` / `BIGINT` dalam rupiah, tanpa desimal. **Dilarang memakai `double` atau `float`.**
-- **`products.stock` adalah cache.** Sumber kebenaran stok adalah tabel `stock_movements`. Keduanya diperbarui dalam transaksi yang sama.
-- **Stok tidak boleh negatif**, dijaga dengan `CHECK (stock >= 0)` di DB dan validasi di domain.
-- **`sale_items` menyimpan snapshot** `product_name`, `unit`, dan `price` saat transaksi.
-- **Tidak ada hapus fisik** untuk produk dan user; gunakan `is_active`. Foreign key ke `products` dan `users` memakai `ON DELETE RESTRICT`.
-- **Total transaksi selalu dihitung ulang di server.** Nilai total dari client tidak pernah dipercaya; client hanya mengirim `product_id` dan `qty`.
-- **Waktu** disimpan sebagai `timestamptz` (`OffsetDateTime`). Laporan harian memakai zona `Asia/Jakarta`.
-- **Nomor invoice** format `INV-YYYYMMDD-NNNN`, urutan diulang tiap hari.
+The `camelCase` (Java) to `snake_case` (JSON) conversion is configured once via `PropertyNamingStrategies.SNAKE_CASE` in `JacksonConfig`, not with `@JsonProperty` on every field.
 
 ---
 
-## 6. Database & Migrasi
+## 5. Data Rules (mandatory)
 
-- Skema **hanya** diubah lewat file migrasi Flyway di `src/main/resources/db/migration/`.
-- `spring.jpa.hibernate.ddl-auto=validate`. **Jangan pernah** memakai `update` atau `create`.
-- File migrasi yang sudah di-commit **tidak boleh diedit** (Flyway menyimpan checksum). Perubahan dibuat sebagai file baru (`V2__...`, `V3__...`).
-- Data awal untuk pengembangan — user `rina` (CASHIER) dan `budi` (OWNER), kategori, dan produk contoh dari PRD poin 12 — ditaruh di `V2__seed_dev_data.sql` dan hanya aktif di profil `dev`. Password seed sama dengan yang dipakai mock di frontend.
+Summary of PRD section 14.4:
 
----
-
-## 7. Transaksi Penjualan (bagian paling kritis)
-
-`SaleService.checkout()` wajib mengikuti urutan ini di dalam satu `@Transactional`:
-
-1. Ambil semua produk yang dibeli dengan **pessimistic write lock**
-   (`@Lock(LockModeType.PESSIMISTIC_WRITE)` di repository, setara `SELECT ... FOR UPDATE`).
-   **Urutkan pengambilan berdasarkan `product_id`** untuk menghindari deadlock saat dua transaksi membeli produk yang sama dengan urutan berbeda.
-2. Validasi produk aktif dan stok mencukupi. Jika tidak, lempar `ProductInactiveException` atau `InsufficientStockException`.
-3. Hitung `subtotal` dan `total` lewat `SaleCalculator`, memakai harga dari database — bukan dari request.
-4. Validasi `paid >= total`; jika kurang, lempar `InsufficientPaymentException`. Hitung kembalian.
-5. Generate `invoice_no` lewat `InvoiceNumberGenerator`.
-6. Simpan `sales` dan `sale_items`, dengan snapshot `product_name`, `unit`, dan `price`.
-7. Kurangi `products.stock` dan catat satu baris `stock_movements` bertipe `SALE` per item, lengkap dengan `stock_before`, `stock_after`, dan `sale_id`.
-
-Exception apa pun akan me-rollback seluruh langkah, termasuk penomoran invoice. **Jangan** menangkap exception di tengah proses lalu melanjutkan.
+- **Money** is stored as `long` / `BIGINT` in rupiah, no decimals. **`double` and `float` are forbidden.**
+- **`products.stock` is a cache.** The source of truth for stock is the `stock_movements` table. Both are updated in the same transaction.
+- **Stock must never be negative**, enforced by `CHECK (stock >= 0)` in the DB and validation in the domain.
+- **`sale_items` stores a snapshot** of `product_name`, `unit`, and `price` at the time of the transaction.
+- **No hard deletes** for products and users; use `is_active`. Foreign keys to `products` and `users` use `ON DELETE RESTRICT`.
+- **The transaction total is always recalculated on the server.** The total from the client is never trusted; the client only sends `product_id` and `qty`.
+- **Time** is stored as `timestamptz` (`OffsetDateTime`). Daily reports use the `Asia/Jakarta` zone.
+- **Invoice number** format `INV-YYYYMMDD-NNNN`, sequence resets every day.
 
 ---
 
-## 8. Keamanan
+## 6. Database & Migrations
 
-- Autentikasi JWT stateless. Token berisi `sub` (user id), `username`, `role`, `exp`.
-- Masa berlaku access token 8 jam (satu shift kerja). Refresh token belum ada di v1.
-- Password di-hash dengan BCrypt (strength 10).
-- Otorisasi dengan `@PreAuthorize("hasRole('OWNER')")`. Batasan per role ada di `docs/api-spec.md` bagian "Ringkasan hak akses".
-- `CASHIER` pada `GET /sales` hanya menerima transaksinya sendiri hari ini, **apa pun filter yang dikirim** — difilter di server, bukan di frontend.
-- Endpoint publik hanya `POST /api/auth/login`, Swagger UI, dan actuator health.
-- **Jangan pernah** mengembalikan `password_hash`, atau `cost_price` untuk role `CASHIER`.
-- Konfigurasi rahasia (JWT secret, kredensial DB) lewat environment variable, **tidak pernah** di-hardcode atau di-commit.
-- **CORS:** saat pengembangan frontend memakai proxy Angular, jadi tidak perlu CORS. Untuk profil `prod`, atur origin yang diizinkan lewat environment variable di `CorsConfig` — jangan `allowedOrigins("*")` bersamaan dengan credentials.
+- The schema is changed **only** through Flyway migration files in `src/main/resources/db/migration/`.
+- `spring.jpa.hibernate.ddl-auto=validate`. **Never** use `update` or `create`.
+- A committed migration file **must not be edited** (Flyway stores a checksum). Make changes as new files (`V2__...`, `V3__...`).
+- Development seed data — user `rina` (CASHIER) and `budi` (OWNER), categories, and sample products from PRD section 12 — goes in `V2__seed_dev_data.sql` and is active only in the `dev` profile. Seed passwords match the ones used by the frontend mock.
 
 ---
 
-## 9. Format Response & Error
+## 7. Sales Transaction (the most critical part)
 
-Response sukses mengembalikan objek DTO langsung (tanpa pembungkus `{data: ...}`). Daftar bersambung memakai `PageResponse`.
+`SaleService.checkout()` must follow this order inside a single `@Transactional`:
 
-Error memakai `ProblemDetail` (RFC 7807) yang ditangani terpusat di `GlobalExceptionHandler`:
+1. Fetch all purchased products with a **pessimistic write lock**
+   (`@Lock(LockModeType.PESSIMISTIC_WRITE)` on the repository, equivalent to `SELECT ... FOR UPDATE`).
+   **Fetch in `product_id` order** to avoid deadlocks when two transactions buy the same products in different orders.
+2. Validate that products are active and stock is sufficient. If not, throw `ProductInactiveException` or `InsufficientStockException`.
+3. Compute `subtotal` and `total` via `SaleCalculator`, using prices from the database — not from the request.
+4. Validate `paid >= total`; if short, throw `InsufficientPaymentException`. Compute the change.
+5. Generate `invoice_no` via `InvoiceNumberGenerator`.
+6. Save `sales` and `sale_items`, with a snapshot of `product_name`, `unit`, and `price`.
+7. Decrease `products.stock` and record one `stock_movements` row of type `SALE` per item, including `stock_before`, `stock_after`, and `sale_id`.
+
+Any exception rolls back all steps, including invoice numbering. **Do not** catch an exception midway and continue.
+
+---
+
+## 8. Security
+
+- Stateless JWT authentication. The token contains `sub` (user id), `username`, `role`, `exp`.
+- Access token lifetime is 8 hours (one work shift). There is no refresh token in v1.
+- Passwords are hashed with BCrypt (strength 10).
+- Authorization with `@PreAuthorize("hasRole('OWNER')")`. Per-role limits are in `docs/api-spec.md` under "Access rights summary".
+- `CASHIER` on `GET /sales` receives only their own transactions for today, **regardless of any filter sent** — filtered on the server, not in the frontend.
+- Public endpoints are only `POST /api/auth/login`, Swagger UI, and actuator health.
+- **Never** return `password_hash`, or `cost_price` for the `CASHIER` role.
+- Secret configuration (JWT secret, DB credentials) goes through environment variables, **never** hardcoded or committed.
+- **CORS:** during development the frontend uses the Angular proxy, so CORS is not needed. For the `prod` profile, set allowed origins via environment variable in `CorsConfig` — never `allowedOrigins("*")` together with credentials.
+
+---
+
+## 9. Response & Error Format
+
+Successful responses return the DTO object directly (no `{data: ...}` wrapper). Paginated lists use `PageResponse`.
+
+Errors use `ProblemDetail` (RFC 7807), handled centrally in `GlobalExceptionHandler`:
 
 ```json
 {
@@ -187,77 +187,77 @@ Error memakai `ProblemDetail` (RFC 7807) yang ditangani terpusat di `GlobalExcep
 }
 ```
 
-Pemetaan kode HTTP:
+HTTP status mapping:
 
-| Situasi | Status |
-|---|---|
-| Validasi request gagal | 400 |
-| Token tidak valid / tidak ada | 401 |
-| Role tidak berwenang | 403 |
-| Data tidak ditemukan | 404 |
-| Konflik data (SKU/barcode duplikat, kategori masih dipakai) | 409 |
-| Aturan bisnis dilanggar (stok kurang, uang kurang, produk nonaktif) | 422 |
-| Error tak terduga | 500 |
+| Situation                                                                           | Status |
+| ----------------------------------------------------------------------------------- | ------ |
+| Request validation failed                                                           | 400    |
+| Invalid / missing token                                                             | 401    |
+| Role not authorized                                                                 | 403    |
+| Data not found                                                                      | 404    |
+| Data conflict (duplicate SKU/barcode, category still in use)                        | 409    |
+| Business rule violated (insufficient stock, insufficient payment, inactive product) | 422    |
+| Unexpected error                                                                    | 500    |
 
-- Field `code` **wajib ada di setiap error** dan nilainya harus persis seperti daftar di `docs/api-spec.md`. Frontend memakai nilai ini untuk menentukan cara menampilkan: inline di form, inline di keranjang, atau toast.
-- Pesan `detail` ditulis dalam **Bahasa Indonesia** karena ditampilkan langsung ke pengguna.
-- Error validasi menyertakan array `errors` berisi `{ field, message }`.
-- Setiap exception domain baru di `sale` harus didaftarkan pemetaannya di `GlobalExceptionHandler`; jangan sampai bocor jadi 500.
+- The `code` field is **required on every error** and its value must match exactly the list in `docs/api-spec.md`. The frontend uses this value to decide how to display it: inline in a form, inline in the cart, or as a toast.
+- The `title` and `detail` messages are written in **Bahasa Indonesia** because they are shown directly to users.
+- Validation errors include an `errors` array of `{ field, message }`.
+- Every new domain exception in `sale` must have its mapping registered in `GlobalExceptionHandler`; never let one leak as a 500.
 
 ---
 
 ## 10. Testing
 
-Prioritas pengujian, bukan mengejar angka coverage:
+Testing priorities, not chasing coverage numbers:
 
-1. **Unit test `SaleCalculator` dan `InvoiceNumberGenerator`** — tanpa Spring, tanpa database, selesai dalam milidetik. Wajib mencakup: hitung subtotal dan total, kembalian, dan format nomor invoice termasuk pergantian hari.
-2. **Integration test `SaleService.checkout()`** memakai Testcontainers PostgreSQL. Wajib mencakup: transaksi normal, keranjang kosong, stok tidak cukup, uang kurang, produk nonaktif, dan **dua transaksi bersamaan atas produk yang sama** (membuktikan pessimistic lock bekerja).
-3. **MockMvc test** untuk controller: kode status, bentuk response (termasuk `code` pada error), dan aturan otorisasi per role.
+1. **Unit tests for `SaleCalculator` and `InvoiceNumberGenerator`** — no Spring, no database, finish in milliseconds. Must cover: subtotal and total calculation, change, and invoice number format including day rollover.
+2. **Integration tests for `SaleService.checkout()`** using Testcontainers PostgreSQL. Must cover: normal transaction, empty cart, insufficient stock, insufficient payment, inactive product, and **two concurrent transactions on the same product** (proving the pessimistic lock works).
+3. **MockMvc tests** for controllers: status codes, response shape (including `code` on errors), and per-role authorization rules.
 
-Aturan: **jangan memakai H2** sebagai pengganti PostgreSQL dalam test, karena perilaku `SELECT ... FOR UPDATE` dan tipe datanya berbeda dari produksi.
+Rule: **do not use H2** as a substitute for PostgreSQL in tests, because the behavior of `SELECT ... FOR UPDATE` and its data types differ from production.
 
 ---
 
-## 11. Menjalankan Proyek
+## 11. Running the Project
 
 ```bash
-docker compose up -d db      # PostgreSQL di port 5432
-./mvnw spring-boot:run       # API di port 8080, profil dev
-./mvnw test                  # seluruh test
+docker compose up -d db      # PostgreSQL on port 5432
+./mvnw spring-boot:run       # API on port 8080, dev profile
+./mvnw test                  # all tests
 ./mvnw verify                # test + build
 ```
 
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
-- Profil: `dev` (default lokal), `test` (Testcontainers), `prod`.
-- Frontend berjalan di port 4200 dan mem-proxy `/api/*` ke port 8080.
+- Profiles: `dev` (local default), `test` (Testcontainers), `prod`.
+- The frontend runs on port 4200 and proxies `/api/*` to port 8080.
 
 ---
 
-## 12. Urutan Implementasi
+## 12. Implementation Order
 
-Mengikuti `docs/api-spec.md` bagian 9:
+Follows `docs/api-spec.md` section 10:
 
-| Tahap | Isi |
-|---|---|
-| 1 | Setup proyek, `V1__init.sql`, entity, CRUD `/categories` dan `/products` (tanpa security dulu, uji di Swagger) |
-| 2 | `sale` — `SaleCalculator`, `SaleService.checkout()`, dan test-nya. Inti aplikasi |
-| 3 | `/auth/**` — Spring Security + JWT, lalu pasang otorisasi di endpoint sebelumnya |
-| 4 | `/stock/in` dan `/stock/adjustment` |
-| 5 | `GET /sales`, `/reports/daily`, `/store-settings` |
+| Stage | Content                                                                                                            |
+| ----- | ------------------------------------------------------------------------------------------------------------------ |
+| 1     | Project setup, `V1__init.sql`, entities, CRUD for `/categories` and `/products` (no security yet, test in Swagger) |
+| 2     | `sale` — `SaleCalculator`, `SaleService.checkout()`, and its tests. The core of the app                            |
+| 3     | `/auth/**` — Spring Security + JWT, then apply authorization to the earlier endpoints                              |
+| 4     | `/stock/in` and `/stock/adjustment`                                                                                |
+| 5     | `GET /sales`, `/reports/daily`, `/store-settings`                                                                  |
 
-Begitu tahap 3 selesai, frontend sudah bisa dilepas dari mock untuk alur login, produk, dan kasir.
+Once stage 3 is done, the frontend can drop the mock for the login, product, and cashier flows.
 
 ---
 
-## 13. Catatan untuk Asisten AI
+## 13. Notes for AI Assistants
 
-- **Baca dulu** `docs/api-spec.md` dan PRD poin 14 sebelum membuat entity atau endpoint baru. Bentuk request/response sudah ditetapkan; jangan mengarang field.
-- **Kontrak API sudah dipakai frontend** (bagian 0). Perubahan bentuk response adalah perubahan yang merusak — konfirmasi dulu.
-- **Seluruh package layered (bagian 2).** **Jangan** menambahkan lapisan `domain/`, `port/`, `application/`, use case, atau model domain terpisah di package mana pun, termasuk `sale`. Satu-satunya pemisahan yang diizinkan adalah kelas helper murni `SaleCalculator` dan `InvoiceNumberGenerator`.
-- **Kerjakan satu feature package sekaligus**, jangan menyebar perubahan ke banyak fitur dalam satu langkah.
-- **Selalu sertakan test** untuk logika bisnis baru, terutama yang menyentuh stok atau uang.
-- **Jangan mengubah file migrasi Flyway yang sudah ada.** Buat file baru.
-- **Jangan menambah dependency, framework, atau pola arsitektur baru** (event bus, CQRS, dll.) tanpa diminta. Proyek ini sengaja dijaga sederhana.
-- **Jangan membuat abstraksi berlapis untuk CRUD sederhana.** Generic base service tidak dipakai di proyek ini.
-- Jika spesifikasi ambigu, **tanyakan dulu**, jangan berasumsi lalu membuat keputusan desain sendiri.
-- Komentar kode dalam Bahasa Inggris. Pesan error untuk pengguna dalam Bahasa Indonesia.
+- **Read first** `docs/api-spec.md` and PRD section 14 before creating a new entity or endpoint. Request/response shapes are already fixed; do not invent fields.
+- **The API contract is already used by the frontend** (section 0). Changing a response shape is a breaking change — confirm first.
+- **All packages are layered (section 2).** **Do not** add `domain/`, `port/`, `application/` layers, use cases, or a separate domain model in any package, including `sale`. The only separation allowed is the pure helper classes `SaleCalculator` and `InvoiceNumberGenerator`.
+- **Work on one feature package at a time**; do not spread changes across many features in one step.
+- **Always include tests** for new business logic, especially anything touching stock or money.
+- **Do not modify existing Flyway migration files.** Create a new file.
+- **Do not add new dependencies, frameworks, or architectural patterns** (event bus, CQRS, etc.) unless asked. This project is deliberately kept simple.
+- **Do not build layered abstractions for simple CRUD.** No generic base service in this project.
+- If the spec is ambiguous, **ask first**; do not assume and then make design decisions on your own.
+- Code comments in English. User-facing error messages in Bahasa Indonesia.

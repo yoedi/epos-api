@@ -1,379 +1,384 @@
 # PRD — ePOS Toko Kelontong (v1)
 
-**Versi dokumen:** 1.2 (model data & status desain)
-**Fokus dokumen:** Desain UI/UX frontend dan model data
-**Platform:** Web app (Angular + PrimeNG), backend terpisah (Spring Boot REST API)
-**Bahasa antarmuka:** Bahasa Indonesia
+**Document version:** 1.2 (data model & design status)
+**Document focus:** Frontend UI/UX design and data model
+**Platform:** Web app (Angular + PrimeNG), separate backend (Spring Boot REST API)
+**UI language:** Bahasa Indonesia
+
+> Note on language: this document is in English, but all text shown to end users (labels, buttons, placeholders, messages, sample data) is deliberately kept in Bahasa Indonesia, in quotes or as-is.
 
 ---
 
-## 1. Ringkasan Produk
+## 1. Product Summary
 
-ePOS adalah aplikasi kasir berbasis web untuk toko kelontong skala kecil–menengah. Tujuan utamanya adalah membuat proses transaksi di kasir **cepat, minim klik, dan minim salah hitung**, sekaligus membantu pemilik toko memantau stok dan omzet harian.
+ePOS is a web-based point-of-sale app for small-to-medium grocery stores (toko kelontong). Its main goal is to make checkout **fast, low on clicks, and low on calculation errors**, while helping the store owner monitor stock and daily revenue.
 
-Versi 1 sengaja dibuat sederhana dan akan dikembangkan bertahap (diskon, retur, member, QRIS, multi-cabang, mode offline).
+Version 1 is intentionally simple and will be expanded in stages (discounts, returns, members, QRIS, multi-branch, offline mode).
 
-## 2. Masalah yang Diselesaikan
+## 2. Problems Solved
 
-- Kasir menghitung manual atau dengan kalkulator, rawan salah total dan kembalian.
-- Pemilik tidak tahu barang mana yang hampir habis sampai pelanggan menanyakannya.
-- Tidak ada catatan omzet harian yang rapi.
-- Harga barang sering berubah dan kasir lupa harga terbaru.
+- Cashiers calculate by hand or with a calculator, prone to wrong totals and change.
+- The owner does not know which items are running low until a customer asks.
+- There is no tidy record of daily revenue.
+- Prices change often and cashiers forget the latest price.
 
-## 3. Pengguna (Persona)
+## 3. Users (Personas)
 
-### 3.1 Kasir — "Rina", 22 tahun
+### 3.1 Cashier — "Rina", 22 years old
 
-- Berdiri di meja kasir, sering melayani antrean saat jam ramai.
-- Menggunakan scanner barcode USB dan keyboard; mouse jarang dipakai saat ramai.
-- Kebutuhan: cari barang cepat, total terlihat jelas, kembalian langsung terhitung, struk tercetak.
-- Tidak butuh akses ke harga modal atau laporan.
+- Stands at the cashier desk, often serving queues at peak hours.
+- Uses a USB barcode scanner and keyboard; rarely uses the mouse when busy.
+- Needs: find items fast, clearly visible total, change calculated instantly, printed receipt.
+- Does not need access to cost prices or reports.
 
-### 3.2 Pemilik Toko — "Pak Budi", 45 tahun
+### 3.2 Store Owner — "Pak Budi", 45 years old
 
-- Mengecek toko di sore/malam hari, kadang dari tablet.
-- Kebutuhan: tambah/ubah produk dan harga, catat stok masuk, lihat omzet hari ini dan barang yang hampir habis.
-- Literasi teknologi menengah: butuh antarmuka jelas, tidak penuh istilah teknis.
+- Checks the store in the afternoon/evening, sometimes from a tablet.
+- Needs: add/edit products and prices, record incoming stock, see today's revenue and items running low.
+- Medium tech literacy: needs a clear interface, not full of technical terms.
 
-## 4. Tujuan & Ukuran Keberhasilan
+## 4. Goals & Success Metrics
 
-| Tujuan           | Indikator                                                        |
-| ---------------- | ---------------------------------------------------------------- |
-| Transaksi cepat  | 1 transaksi 5 item selesai < 30 detik tanpa mouse                |
-| Minim kesalahan  | Total, kembalian, dan stok dihitung sistem; validasi uang kurang |
-| Stok terkontrol  | Barang di bawah stok minimum terlihat di dashboard               |
-| Mudah dipelajari | Kasir baru bisa bertransaksi tanpa pelatihan panjang             |
+| Goal              | Indicator                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| Fast transactions | One 5-item transaction completed in < 30 seconds without a mouse                    |
+| Few errors        | Total, change, and stock calculated by the system; validation when payment is short |
+| Controlled stock  | Items below minimum stock are visible on the dashboard                              |
+| Easy to learn     | A new cashier can transact without lengthy training                                 |
 
-## 5. Ruang Lingkup v1
+## 5. v1 Scope
 
-**Termasuk:**
+**Included:**
 
-- Login dengan role (Pemilik, Kasir)
-- Layar Kasir (POS): cari/scan barang, keranjang, pembayaran tunai, struk
-- Manajemen Produk & Kategori
-- Stok Masuk & Penyesuaian Stok
-- Riwayat Transaksi & detail struk
-- Dashboard ringkas (omzet hari ini, jumlah transaksi, stok menipis)
+- Login with roles (Owner, Cashier)
+- Cashier (POS) screen: search/scan items, cart, cash payment, receipt
+- Product & Category management
+- Incoming Stock & Stock Adjustment
+- Transaction History & receipt detail
+- Concise dashboard (today's revenue, transaction count, low stock)
 
-**Tidak termasuk (roadmap):**
+**Not included (roadmap):**
 
-- Diskon per item, retur/void transaksi (v2)
-- Supplier & pembelian, laporan laba (v2)
-- Member & poin, QRIS/non-tunai, export Excel/PDF (v3)
-- Multi-cabang, mode offline (v4)
+- Per-item discounts, returns/void transactions (v2)
+- Suppliers & purchasing, profit reports (v2)
+- Members & points, QRIS/non-cash, Excel/PDF export (v3)
+- Multi-branch, offline mode (v4)
 
-> Catatan untuk desain: sisakan ruang/pola yang memungkinkan fitur roadmap ditambahkan tanpa merombak layout (misalnya area metode pembayaran bisa menampung opsi selain tunai).
+> Note for design: leave room/patterns so roadmap features can be added without reworking the layout (for example, the payment method area can hold options other than cash).
 
-## 6. Hak Akses
+## 6. Access Rights
 
-| Fitur                    | Pemilik | Kasir                          |
-| ------------------------ | ------- | ------------------------------ |
-| Layar Kasir              | ✓       | ✓                              |
-| Riwayat Transaksi        | Semua   | Hanya milik sendiri, hari ini  |
-| Produk & Kategori        | Kelola  | Lihat saja (tanpa harga modal) |
-| Stok Masuk / Penyesuaian | ✓       | —                              |
-| Dashboard                | ✓       | —                              |
+| Feature                     | Owner  | Cashier                   |
+| --------------------------- | ------ | ------------------------- |
+| Cashier Screen              | ✓      | ✓                         |
+| Transaction History         | All    | Own only, today only      |
+| Products & Categories       | Manage | View only (no cost price) |
+| Incoming Stock / Adjustment | ✓      | —                         |
+| Dashboard                   | ✓      | —                         |
 
-Menu yang tidak diizinkan **disembunyikan**, bukan sekadar dinonaktifkan.
+Menus that are not permitted are **hidden**, not merely disabled.
 
-## 7. Arahan Desain Visual
+## 7. Visual Design Direction
 
-- **Karakter:** bersih, fungsional, tegas, ramah. Terasa seperti alat kerja, bukan aplikasi hiburan.
-- **Kepadatan:** Layar Kasir memakai elemen besar dan kontras tinggi; halaman admin (produk, laporan) boleh lebih padat.
-- **Warna:** satu warna utama yang tegas untuk aksi utama (tombol Bayar), warna netral untuk latar, serta warna semantik: hijau (sukses/kembalian), kuning/oranye (stok menipis), merah (error/uang kurang/hapus).
-- **Tipografi:** sans-serif yang sangat terbaca. Angka nominal memakai angka tabular (lebar sama) agar kolom harga rata.
-- **Mode:** mendukung terang dan gelap.
-- **Ikon:** konsisten, garis sederhana.
-- **Format angka:** Rupiah tanpa desimal, pemisah ribuan titik — contoh `Rp 125.500`.
-- **Format tanggal:** `16 Sep 2026, 14:32`.
+- **Character:** clean, functional, firm, friendly. Should feel like a work tool, not an entertainment app.
+- **Density:** the Cashier Screen uses large, high-contrast elements; admin pages (products, reports) may be denser.
+- **Color:** one firm primary color for the main action (the Pay button), neutral colors for the background, plus semantic colors: green (success/change), yellow/orange (low stock), red (error/payment short/delete).
+- **Typography:** a highly readable sans-serif. Monetary figures use tabular numerals (equal width) so price columns align.
+- **Mode:** supports light and dark.
+- **Icons:** consistent, simple line style.
+- **Number format:** Rupiah without decimals, dot as thousands separator — for example `Rp 125.500`.
+- **Date format:** `16 Sep 2026, 14:32`.
 
-### Target layar & perangkat
+### Target screens & devices
 
-Aplikasi responsif dan bisa dibuka di laptop, tablet, dan HP. Ukuran acuan:
+The app is responsive and can be opened on laptop, tablet, and phone. Reference sizes:
 
-- **Laptop/desktop:** 1366×768 dan 1920×1080
+- **Laptop/desktop:** 1366×768 and 1920×1080
 - **Tablet:** 1024×768 (landscape)
-- **HP:** 390×844
+- **Phone:** 390×844
 
-Tidak semua layar diprioritaskan sama di setiap perangkat, disesuaikan dengan siapa yang memakainya:
+Not every screen is prioritized equally on every device; it follows who uses it:
 
-| Layar                    | Laptop    | Tablet        | HP                  |
-| ------------------------ | --------- | ------------- | ------------------- |
-| Login                    | ✓         | ✓             | ✓                   |
-| Kasir (POS)              | **Utama** | ✓ (landscape) | Ditunda ke v2       |
-| Dashboard                | ✓         | ✓             | **Utama (Pemilik)** |
-| Daftar Produk & Kategori | ✓         | ✓             | ✓                   |
-| Stok Masuk & Penyesuaian | ✓         | ✓             | ✓                   |
-| Riwayat Transaksi        | ✓         | ✓             | ✓                   |
+| Screen                      | Laptop      | Tablet        | Phone               |
+| --------------------------- | ----------- | ------------- | ------------------- |
+| Login                       | ✓           | ✓             | ✓                   |
+| Cashier (POS)               | **Primary** | ✓ (landscape) | Deferred to v2      |
+| Dashboard                   | ✓           | ✓             | **Primary (Owner)** |
+| Product & Category List     | ✓           | ✓             | ✓                   |
+| Incoming Stock & Adjustment | ✓           | ✓             | ✓                   |
+| Transaction History         | ✓           | ✓             | ✓                   |
 
-Alasan: kasir bekerja di meja kasir dengan laptop/tablet dan scanner barcode, sedangkan pemilik paling sering memantau toko dari HP.
+Reason: cashiers work at the cashier desk with a laptop/tablet and barcode scanner, while the owner most often monitors the store from a phone.
 
-### Pola responsif
+### Responsive patterns
 
-- **Tablet:** layout mengikuti laptop dengan sidebar yang diciutkan menjadi ikon. Layar Kasir tetap dua kolom, proporsi disesuaikan.
-- **HP:**
-  - Sidebar diganti menu navigasi bawah (bottom navigation) berisi menu utama sesuai role
-  - Tabel data berubah menjadi daftar kartu
-  - Form tampil satu kolom, drawer/modal tampil layar penuh atau bottom sheet
-  - Toolbar filter dilipat ke tombol "Filter" yang membuka bottom sheet
-  - Tombol aksi utama (misalnya "Tambah Produk") menjadi tombol mengambang atau menempel di bawah
-  - Target sentuh minimal 44px
-- Jika Kasir membuka aplikasi dari HP di v1, tampilkan pesan ramah bahwa Layar Kasir tersedia di laptop atau tablet.
+- **Tablet:** layout follows the laptop with the sidebar collapsed to icons. The Cashier Screen stays two-column, with proportions adjusted.
+- **Phone:**
+  - Sidebar is replaced by bottom navigation containing the main menus for the role
+  - Data tables become card lists
+  - Forms appear in a single column; drawers/modals appear full-screen or as a bottom sheet
+  - The filter toolbar collapses into a "Filter" button that opens a bottom sheet
+  - The main action button (for example "Tambah Produk") becomes a floating button or sticks to the bottom
+  - Minimum touch target 44px
+- If a Cashier opens the app from a phone in v1, show a friendly message that the Cashier Screen is available on laptop or tablet.
 
-## 8. Struktur Navigasi
+## 8. Navigation Structure
 
-Sidebar kiri yang bisa diciutkan, header atas berisi nama toko, nama pengguna, role, dan tombol keluar.
+Collapsible left sidebar, top header containing the store name, user name, role, and a sign-out button.
 
 ```
-- Dashboard            (Pemilik)
+- Dashboard            (Owner)
 - Kasir
 - Transaksi
 - Produk
     - Daftar Produk
     - Kategori
-- Stok                 (Pemilik)
+- Stok                 (Owner)
     - Stok Masuk
     - Penyesuaian Stok
 ```
 
-Untuk Kasir, setelah login langsung diarahkan ke Layar Kasir. Untuk Pemilik, ke Dashboard.
+(Menu labels are the actual UI text, in Indonesian: Kasir = Cashier, Transaksi = Transactions, Produk = Products, Daftar Produk = Product List, Kategori = Categories, Stok = Stock, Stok Masuk = Incoming Stock, Penyesuaian Stok = Stock Adjustment.)
 
-**Navigasi di HP (Pemilik):** menu bawah berisi Dashboard, Transaksi, Produk, Stok, dan Lainnya (Kategori, profil, keluar).
+For a Cashier, after login they go straight to the Cashier Screen. For an Owner, to the Dashboard.
+
+**Phone navigation (Owner):** bottom menu containing Dashboard, Transaksi, Produk, Stok, and Lainnya (More: Kategori, profile, sign out).
 
 ---
 
-## 9. Spesifikasi Layar
+## 9. Screen Specifications
 
 ### 9.1 Login
 
-**Tujuan:** masuk ke aplikasi.
+**Purpose:** sign in to the app.
 
-**Elemen:**
+**Elements:**
 
-- Logo/nama toko
-- Input username, input password (dengan tombol tampilkan/sembunyikan)
-- Tombol "Masuk"
-- Pesan error di bawah form
+- Logo/store name
+- Username input, password input (with show/hide button)
+- "Masuk" button
+- Error message below the form
 
-**State:** default, loading (tombol menampilkan spinner dan nonaktif), error ("Username atau password salah").
-
----
-
-### 9.2 Layar Kasir (POS) — **layar paling penting**
-
-**Tujuan:** menyelesaikan transaksi secepat mungkin.
-
-**Layout (desktop):** dua kolom.
-
-**Kolom kiri (± 60%) — Pencarian & Keranjang**
-
-- Input pencarian besar di atas, placeholder: "Scan barcode atau ketik nama barang (F2)". Selalu kembali fokus ke sini setelah item ditambahkan.
-- Dropdown hasil pencarian: nama barang, SKU, harga jual, sisa stok. Navigasi dengan panah atas/bawah, Enter untuk menambah.
-- Tabel keranjang dengan kolom: No, Nama Barang, Harga, Qty (tombol − / input / +), Subtotal, tombol hapus.
-- Item terakhir yang ditambahkan diberi sorotan singkat.
-
-**Kolom kanan (± 40%) — Ringkasan & Pembayaran**
-
-- Nomor invoice sementara dan nama kasir
-- Jumlah item
-- **TOTAL** dalam ukuran sangat besar
-- Tombol "Bayar (F9)" yang dominan
-- Tombol sekunder: "Kosongkan Keranjang"
-
-**Modal Pembayaran (muncul setelah Bayar):**
-
-- Total belanja (besar)
-- Metode: Tunai (v1 satu-satunya, tetapi tampil sebagai pilihan)
-- Input "Uang Diterima" dengan tombol nominal cepat: Uang Pas, 10.000, 20.000, 50.000, 100.000
-- **Kembalian** tampil real-time, hijau jika cukup, merah dengan pesan "Uang kurang Rp X" jika kurang
-- Tombol "Selesaikan Transaksi (Enter)", nonaktif jika uang kurang
-
-**Setelah transaksi sukses:**
-
-- Tampilan konfirmasi: centang sukses, nomor invoice, total, dibayar, kembalian
-- Tombol "Cetak Struk" dan "Transaksi Baru (Enter)"
-
-**Pintasan keyboard:**
-| Tombol | Aksi |
-|---|---|
-| F2 | Fokus ke pencarian |
-| F9 | Buka pembayaran |
-| Enter | Tambah item / konfirmasi |
-| + / − | Ubah qty item terpilih |
-| Delete | Hapus item terpilih |
-| Esc | Tutup modal |
-
-Tampilkan petunjuk pintasan secara halus di bagian bawah layar.
-
-**State & kasus khusus:**
-
-- Keranjang kosong: ilustrasi sederhana + teks "Scan atau cari barang untuk memulai"
-- Barcode tidak ditemukan: notifikasi "Barang dengan barcode 8991234567890 tidak ditemukan"
-- Stok tidak cukup: qty tidak bisa melebihi stok, tampil peringatan "Stok Minyak Goreng 2 L tersisa 3"
-- Stok habis: item tampil di hasil pencarian dengan label "Habis" dan tidak bisa ditambahkan
-- Gagal simpan transaksi (koneksi/server): pesan error jelas, keranjang **tidak hilang**, tombol coba lagi
-- Loading saat menyimpan transaksi: tombol menampilkan spinner, cegah klik ganda
+**States:** default, loading (button shows a spinner and is disabled), error ("Username atau password salah").
 
 ---
 
-### 9.3 Struk (tampilan cetak)
+### 9.2 Cashier Screen (POS) — **the most important screen**
 
-Format lebar printer thermal 58 mm dan 80 mm.
+**Purpose:** complete a transaction as fast as possible.
 
-**Isi:** nama toko, alamat, no. telepon, nomor invoice, tanggal & jam, nama kasir, garis pemisah, daftar item (nama; qty × harga; subtotal), garis pemisah, total, tunai, kembalian, ucapan "Terima kasih, selamat belanja kembali".
+**Layout (desktop):** two columns.
 
----
+**Left column (± 60%) — Search & Cart**
 
-### 9.4 Dashboard (Pemilik)
+- Large search input at the top, placeholder: "Scan barcode atau ketik nama barang (F2)". Always returns focus here after an item is added.
+- Search results dropdown: item name, SKU, selling price, remaining stock. Navigate with up/down arrows, Enter to add.
+- Cart table with columns: No, Nama Barang, Harga, Qty (− / input / + buttons), Subtotal, delete button.
+- The most recently added item gets a brief highlight.
 
-**Kartu ringkasan (baris atas):**
+**Right column (± 40%) — Summary & Payment**
 
-- Omzet hari ini
-- Jumlah transaksi hari ini
-- Rata-rata nilai transaksi
-- Jumlah produk stok menipis
+- Temporary invoice number and cashier name
+- Item count
+- **TOTAL** in a very large size
+- Dominant "Bayar (F9)" button
+- Secondary button: "Kosongkan Keranjang"
 
-**Konten:**
+**Payment Modal (appears after Pay):**
 
-- Grafik batang penjualan per jam hari ini
-- Tabel "Stok Menipis": nama barang, stok saat ini, stok minimum, tombol "Tambah Stok" (menuju Stok Masuk dengan barang terpilih)
-- Tabel "5 Barang Terlaris Hari Ini": nama, qty terjual, total
+- Purchase total (large)
+- Method: Cash (the only one in v1, but shown as a choice)
+- "Uang Diterima" (amount received) input with quick amount buttons: Uang Pas, 10.000, 20.000, 50.000, 100.000
+- **Kembalian** (change) shown in real time, green if enough, red with the message "Uang kurang Rp X" if short
+- "Selesaikan Transaksi (Enter)" button, disabled if payment is short
 
-**State:** belum ada transaksi hari ini → kartu bernilai 0 dan pesan ramah, bukan grafik kosong yang membingungkan.
+**After a successful transaction:**
 
----
+- Confirmation view: success check mark, invoice number, total, amount paid, change
+- "Cetak Struk" and "Transaksi Baru (Enter)" buttons
 
-### 9.5 Daftar Produk
+**Keyboard shortcuts:**
 
-**Toolbar:** pencarian (nama/SKU/barcode), filter kategori, filter status (Aktif/Nonaktif/Stok Menipis), tombol "Tambah Produk".
+| Key    | Action                          |
+| ------ | ------------------------------- |
+| F2     | Focus the search                |
+| F9     | Open payment                    |
+| Enter  | Add item / confirm              |
+| + / −  | Change qty of the selected item |
+| Delete | Remove the selected item        |
+| Esc    | Close modal                     |
 
-**Tabel:** SKU, Nama, Kategori, Harga Jual, Harga Modal (Pemilik saja), Stok (badge oranye jika menipis, merah jika habis), Status, Aksi (Edit, Nonaktifkan).
+Show a subtle shortcut hint at the bottom of the screen.
 
-Paginasi di bawah. Mendukung pengurutan per kolom.
+**States & special cases:**
 
-**Form Tambah/Edit Produk (drawer samping atau modal):**
-
-- Nama barang*, SKU*, Barcode (opsional, dengan ikon scan), Kategori*, Satuan* (pcs, kg, liter, bungkus, dus)
-- Harga Modal*, Harga Jual* — tampilkan margin otomatis ("Margin Rp 1.500 / 12%"); peringatan jika harga jual di bawah modal
-- Stok Awal (hanya saat tambah), Stok Minimum\*
-- Toggle Aktif
-- Validasi inline per field
-
-**State:** kosong ("Belum ada produk. Tambahkan produk pertama Anda"), hasil pencarian kosong, loading (skeleton tabel).
-
----
-
-### 9.6 Kategori
-
-Tabel sederhana: Nama Kategori, Jumlah Produk, Aksi (Edit, Hapus). Tambah/edit lewat modal kecil. Hapus diblokir jika kategori masih memiliki produk, dengan penjelasan.
-
----
-
-### 9.7 Stok Masuk (Pemilik)
-
-- Pilih/scan barang, input jumlah, catatan (misal "Belanja grosir 16 Sep")
-- Bisa menambahkan beberapa barang dalam satu kali input (daftar sementara)
-- Tampilkan stok sebelum → sesudah untuk tiap barang
-- Tombol "Simpan Stok Masuk"
-- Di bawahnya: riwayat stok masuk terbaru
-
-### 9.8 Penyesuaian Stok (Pemilik)
-
-- Pilih barang, tampil stok sistem saat ini
-- Input stok fisik hasil hitung; selisih dihitung otomatis (+/−)
-- Alasan wajib: Rusak, Kedaluwarsa, Hilang, Salah Hitung, Lainnya
-- Konfirmasi sebelum simpan
+- Empty cart: simple illustration + text "Scan atau cari barang untuk memulai"
+- Barcode not found: notification "Barang dengan barcode 8991234567890 tidak ditemukan"
+- Insufficient stock: qty cannot exceed stock, warning shown "Stok Minyak Goreng 2 L tersisa 3"
+- Out of stock: item appears in search results with the label "Habis" and cannot be added
+- Transaction save failure (connection/server): clear error message, the cart is **not lost**, retry button
+- Loading while saving the transaction: button shows a spinner, prevent double clicks
 
 ---
 
-### 9.9 Riwayat Transaksi
+### 9.3 Receipt (print view)
 
-**Filter:** rentang tanggal (default hari ini), kasir (Pemilik saja), pencarian nomor invoice.
+Width format for 58 mm and 80 mm thermal printers.
 
-**Ringkasan di atas tabel:** total omzet dan jumlah transaksi sesuai filter.
-
-**Tabel:** No. Invoice, Tanggal & Jam, Kasir, Jumlah Item, Total, Aksi (Lihat).
-
-**Detail Transaksi (drawer/modal):** tampilan menyerupai struk dengan tombol "Cetak Ulang".
+**Contents:** store name, address, phone number, invoice number, date & time, cashier name, separator line, item list (name; qty × price; subtotal), separator line, total, cash, change, closing line "Terima kasih, selamat belanja kembali".
 
 ---
 
-## 10. Komponen yang Dipakai Ulang
+### 9.4 Dashboard (Owner)
 
-- Tombol (primer, sekunder, bahaya, ikon) dengan state loading & nonaktif
-- Input teks, input angka Rupiah (otomatis format ribuan), input qty stepper, dropdown, date range picker
-- Tabel data dengan paginasi, sortir, skeleton loading
-- Badge status stok (Aman / Menipis / Habis) dan status produk (Aktif / Nonaktif)
-- Kartu statistik
-- Modal, drawer samping, dialog konfirmasi
-- Toast notifikasi (sukses, peringatan, error)
-- Empty state dengan ilustrasi ringan dan ajakan tindakan
+**Summary cards (top row):**
 
-## 11. Aksesibilitas & Kenyamanan
+- Today's revenue
+- Today's transaction count
+- Average transaction value
+- Number of low-stock products
 
-- Semua alur di Layar Kasir bisa diselesaikan hanya dengan keyboard
-- Fokus keyboard terlihat jelas
-- Kontras teks memenuhi WCAG AA
-- Warna tidak menjadi satu-satunya penanda status (selalu disertai teks/ikon)
-- Target klik minimal 40px di Layar Kasir (nyaman untuk layar sentuh)
+**Content:**
 
-## 12. Contoh Data untuk Mockup
+- Bar chart of today's sales per hour
+- "Stok Menipis" table: item name, current stock, minimum stock, "Tambah Stok" button (goes to Incoming Stock with the item preselected)
+- "5 Barang Terlaris Hari Ini" table: name, qty sold, total
 
-**Toko:** Toko Berkah Jaya — Jl. Kaliurang Km 5, Yogyakarta
-
-| SKU     | Nama               | Kategori        | Harga Jual | Stok | Stok Min |
-| ------- | ------------------ | --------------- | ---------- | ---- | -------- |
-| BRS-005 | Beras Premium 5 kg | Sembako         | Rp 78.000  | 24   | 10       |
-| MYK-002 | Minyak Goreng 2 L  | Sembako         | Rp 36.500  | 3    | 12       |
-| GLA-001 | Gula Pasir 1 kg    | Sembako         | Rp 17.500  | 40   | 15       |
-| TLR-001 | Telur Ayam 1 kg    | Sembako         | Rp 29.000  | 8    | 10       |
-| MIE-001 | Mi Instan Goreng   | Makanan         | Rp 3.500   | 120  | 48       |
-| AIR-600 | Air Mineral 600 ml | Minuman         | Rp 4.000   | 0    | 24       |
-| SBN-001 | Sabun Mandi Batang | Kebutuhan Rumah | Rp 4.500   | 36   | 12       |
-| KPI-001 | Kopi Sachet        | Minuman         | Rp 2.000   | 85   | 30       |
-
-**Contoh keranjang:** Beras Premium 5 kg ×1, Mi Instan Goreng ×5, Telur Ayam 1 kg ×1, Kopi Sachet ×10 → **Total Rp 144.500**, uang diterima Rp 150.000, kembalian **Rp 5.500**.
-
-**Pengguna:** Budi Santoso (Pemilik), Rina Lestari (Kasir).
-
-## 13. Status Desain
-
-Desain v1 **selesai** di Claude Design, dikerjakan satu layar per permintaan dengan urutan berikut (seluruh layar laptop lebih dulu, perangkat lain di akhir):
-
-| Langkah | Layar                                                                             | Perangkat        | Status  |
-| ------- | --------------------------------------------------------------------------------- | ---------------- | ------- |
-| 1       | Layar Kasir: keranjang terisi — gaya visual dikunci di sini                       | Laptop           | Selesai |
-| 2       | Layar Kasir: modal pembayaran, layar sukses, state uang kurang & stok tidak cukup | Laptop           | Selesai |
-| 3       | Dashboard                                                                         | Laptop           | Selesai |
-| 4       | Daftar Produk + form tambah/edit                                                  | Laptop           | Selesai |
-| 5       | Riwayat Transaksi + detail struk                                                  | Laptop           | Selesai |
-| 6       | Stok Masuk, Penyesuaian Stok, Kategori                                            | Laptop           | Selesai |
-| 7       | Login, struk 58 mm, halaman token desain                                          | Laptop           | Selesai |
-| 8a      | Layar Kasir                                                                       | Tablet landscape | Selesai |
-| 8b      | Dashboard, Daftar Produk, Riwayat Transaksi, Login                                | HP               | Selesai |
-
-**Belum dibuat (menyusul bila diperlukan):**
-
-- Mockup tablet untuk layar selain Kasir — cukup mengikuti pola responsif di poin 7 saat implementasi.
-- Versi HP untuk Stok Masuk, Penyesuaian Stok, dan Kategori — mengikuti pola HP di poin 7.
-- Varian mode gelap.
-- Layar Kasir versi HP — ditunda ke v2.
+**State:** no transactions today → cards show 0 and a friendly message, not a confusing empty chart.
 
 ---
 
-## 14. Model Data
+### 9.5 Product List
 
-### 14.1 Diagram Relasi (ERD)
+**Toolbar:** search (name/SKU/barcode), category filter, status filter (Aktif/Nonaktif/Stok Menipis), "Tambah Produk" button.
+
+**Table:** SKU, Nama, Kategori, Harga Jual, Harga Modal (Owner only), Stok (orange badge if low, red if out), Status, Aksi (Edit, Nonaktifkan).
+
+Pagination at the bottom. Supports sorting per column.
+
+**Add/Edit Product Form (side drawer or modal):**
+
+- Nama barang*, SKU*, Barcode (optional, with a scan icon), Kategori*, Satuan* (pcs, kg, liter, bungkus, dus)
+- Harga Modal*, Harga Jual* — show automatic margin ("Margin Rp 1.500 / 12%"); warning if selling price is below cost
+- Stok Awal (only when adding), Stok Minimum*
+- Active toggle
+- Inline per-field validation
+
+**States:** empty ("Belum ada produk. Tambahkan produk pertama Anda"), empty search result, loading (table skeleton).
+
+---
+
+### 9.6 Categories
+
+Simple table: Nama Kategori, Jumlah Produk, Aksi (Edit, Hapus). Add/edit via a small modal. Delete is blocked if the category still has products, with an explanation.
+
+---
+
+### 9.7 Incoming Stock (Owner)
+
+- Select/scan an item, enter quantity, note (e.g. "Belanja grosir 16 Sep")
+- Can add several items in one entry (temporary list)
+- Show stock before → after for each item
+- "Simpan Stok Masuk" button
+- Below it: recent incoming stock history
+
+### 9.8 Stock Adjustment (Owner)
+
+- Select an item, show the current system stock
+- Enter the physical stock counted; the difference is calculated automatically (+/−)
+- Reason required: Rusak, Kedaluwarsa, Hilang, Salah Hitung, Lainnya
+- Confirmation before saving
+
+---
+
+### 9.9 Transaction History
+
+**Filters:** date range (default today), cashier (Owner only), invoice number search.
+
+**Summary above the table:** total revenue and transaction count according to the filter.
+
+**Table:** No. Invoice, Tanggal & Jam, Kasir, Jumlah Item, Total, Aksi (Lihat).
+
+**Transaction Detail (drawer/modal):** looks like a receipt with a "Cetak Ulang" button.
+
+---
+
+## 10. Reusable Components
+
+- Buttons (primary, secondary, danger, icon) with loading & disabled states
+- Text input, Rupiah number input (auto thousands formatting), qty stepper input, dropdown, date range picker
+- Data table with pagination, sorting, skeleton loading
+- Stock status badge (Aman / Menipis / Habis) and product status (Aktif / Nonaktif)
+- Statistic card
+- Modal, side drawer, confirmation dialog
+- Toast notifications (success, warning, error)
+- Empty state with a light illustration and call to action
+
+## 11. Accessibility & Comfort
+
+- All flows on the Cashier Screen can be completed with the keyboard alone
+- Keyboard focus is clearly visible
+- Text contrast meets WCAG AA
+- Color is never the only status indicator (always accompanied by text/icon)
+- Minimum click target 40px on the Cashier Screen (comfortable for touch screens)
+
+## 12. Sample Data for Mockups
+
+**Store:** Toko Berkah Jaya — Jl. Kaliurang Km 5, Yogyakarta
+
+| SKU     | Name               | Category        | Selling Price | Stock | Min Stock |
+| ------- | ------------------ | --------------- | ------------- | ----- | --------- |
+| BRS-005 | Beras Premium 5 kg | Sembako         | Rp 78.000     | 24    | 10        |
+| MYK-002 | Minyak Goreng 2 L  | Sembako         | Rp 36.500     | 3     | 12        |
+| GLA-001 | Gula Pasir 1 kg    | Sembako         | Rp 17.500     | 40    | 15        |
+| TLR-001 | Telur Ayam 1 kg    | Sembako         | Rp 29.000     | 8     | 10        |
+| MIE-001 | Mi Instan Goreng   | Makanan         | Rp 3.500      | 120   | 48        |
+| AIR-600 | Air Mineral 600 ml | Minuman         | Rp 4.000      | 0     | 24        |
+| SBN-001 | Sabun Mandi Batang | Kebutuhan Rumah | Rp 4.500      | 36    | 12        |
+| KPI-001 | Kopi Sachet        | Minuman         | Rp 2.000      | 85    | 30        |
+
+**Sample cart:** Beras Premium 5 kg ×1, Mi Instan Goreng ×5, Telur Ayam 1 kg ×1, Kopi Sachet ×10 → **Total Rp 144.500**, amount received Rp 150.000, change **Rp 5.500**.
+
+**Users:** Budi Santoso (Owner), Rina Lestari (Cashier).
+
+## 13. Design Status
+
+The v1 design is **complete** in Claude Design, done one screen per request in the following order (all laptop screens first, other devices last):
+
+| Step | Screen                                                                                   | Device           | Status |
+| ---- | ---------------------------------------------------------------------------------------- | ---------------- | ------ |
+| 1    | Cashier Screen: filled cart — visual style is locked here                                | Laptop           | Done   |
+| 2    | Cashier Screen: payment modal, success screen, payment-short & insufficient-stock states | Laptop           | Done   |
+| 3    | Dashboard                                                                                | Laptop           | Done   |
+| 4    | Product List + add/edit form                                                             | Laptop           | Done   |
+| 5    | Transaction History + receipt detail                                                     | Laptop           | Done   |
+| 6    | Incoming Stock, Stock Adjustment, Categories                                             | Laptop           | Done   |
+| 7    | Login, 58 mm receipt, design tokens page                                                 | Laptop           | Done   |
+| 8a   | Cashier Screen                                                                           | Tablet landscape | Done   |
+| 8b   | Dashboard, Product List, Transaction History, Login                                      | Phone            | Done   |
+
+**Not yet made (to follow if needed):**
+
+- Tablet mockups for screens other than Cashier — just follow the responsive patterns in section 7 during implementation.
+- Phone versions of Incoming Stock, Stock Adjustment, and Categories — follow the phone patterns in section 7.
+- Dark mode variants.
+- Phone version of the Cashier Screen — deferred to v2.
+
+---
+
+## 14. Data Model
+
+### 14.1 Entity Relationship Diagram (ERD)
 
 ```mermaid
 erDiagram
-    users ||--o{ sales : "melayani"
-    users ||--o{ stock_movements : "mencatat"
-    categories ||--o{ products : "mengelompokkan"
-    products ||--o{ sale_items : "terjual di"
-    products ||--o{ stock_movements : "punya riwayat"
-    sales ||--|{ sale_items : "berisi"
-    sales ||--o{ stock_movements : "mengurangi stok"
+    users ||--o{ sales : "serves"
+    users ||--o{ stock_movements : "records"
+    categories ||--o{ products : "groups"
+    products ||--o{ sale_items : "sold in"
+    products ||--o{ stock_movements : "has history"
+    sales ||--|{ sale_items : "contains"
+    sales ||--o{ stock_movements : "reduces stock"
 
     users {
         bigint id PK
@@ -414,12 +419,12 @@ erDiagram
         bigint id PK
         bigint product_id FK
         varchar type "IN | SALE | ADJUSTMENT"
-        int qty "positif atau negatif"
+        int qty "positive or negative"
         int stock_before
         int stock_after
-        varchar reason "nullable, untuk ADJUSTMENT"
+        varchar reason "nullable, for ADJUSTMENT"
         varchar note "nullable"
-        bigint sale_id FK "nullable, untuk SALE"
+        bigint sale_id FK "nullable, for SALE"
         bigint user_id FK
         timestamptz created_at
     }
@@ -429,12 +434,12 @@ erDiagram
         varchar invoice_no UK
         bigint cashier_id FK
         bigint subtotal
-        bigint discount "0 di v1"
+        bigint discount "0 in v1"
         bigint total
-        varchar payment_method "CASH di v1"
+        varchar payment_method "CASH in v1"
         bigint paid
         bigint change_amount
-        varchar status "COMPLETED di v1"
+        varchar status "COMPLETED in v1"
         timestamptz created_at
     }
 
@@ -459,38 +464,38 @@ erDiagram
     }
 ```
 
-### 14.2 Keterkaitan Tabel dengan Layar
+### 14.2 Table-to-Screen Mapping
 
-| Tabel             | Dipakai di layar                                                           |
-| ----------------- | -------------------------------------------------------------------------- |
-| `users`           | Login (9.1), header & nama kasir, filter kasir di Riwayat Transaksi (9.9)  |
-| `categories`      | Kategori (9.6), filter & form Produk (9.5)                                 |
-| `products`        | Kasir (9.2), Produk (9.5), Stok Menipis di Dashboard (9.4), Stok (9.7–9.8) |
-| `stock_movements` | Stok Masuk & riwayatnya (9.7), Penyesuaian Stok (9.8)                      |
-| `sales`           | Kasir (9.2), Dashboard (9.4), Riwayat Transaksi (9.9)                      |
-| `sale_items`      | Struk (9.3), detail transaksi (9.9), Barang Terlaris di Dashboard (9.4)    |
-| `store_settings`  | Header struk (9.3), nama toko di header aplikasi                           |
+| Table             | Used in screen                                                                  |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `users`           | Login (9.1), header & cashier name, cashier filter in Transaction History (9.9) |
+| `categories`      | Categories (9.6), filter & form in Products (9.5)                               |
+| `products`        | Cashier (9.2), Products (9.5), Low Stock on Dashboard (9.4), Stock (9.7–9.8)    |
+| `stock_movements` | Incoming Stock & its history (9.7), Stock Adjustment (9.8)                      |
+| `sales`           | Cashier (9.2), Dashboard (9.4), Transaction History (9.9)                       |
+| `sale_items`      | Receipt (9.3), transaction detail (9.9), Best Sellers on Dashboard (9.4)        |
+| `store_settings`  | Receipt header (9.3), store name in the app header                              |
 
-### 14.3 Nilai Enum
+### 14.3 Enum Values
 
-| Kolom                    | Nilai v1                                                    | Disiapkan untuk roadmap |
-| ------------------------ | ----------------------------------------------------------- | ----------------------- |
-| `users.role`             | `OWNER`, `CASHIER`                                          | —                       |
-| `products.unit`          | `PCS`, `KG`, `LITER`, `BUNGKUS`, `DUS`                      | —                       |
-| `stock_movements.type`   | `IN`, `SALE`, `ADJUSTMENT`                                  | `RETURN`, `VOID` (v2)   |
-| `stock_movements.reason` | `RUSAK`, `KEDALUWARSA`, `HILANG`, `SALAH_HITUNG`, `LAINNYA` | —                       |
-| `sales.payment_method`   | `CASH`                                                      | `QRIS`, dll. (v3)       |
-| `sales.status`           | `COMPLETED`                                                 | `VOIDED` (v2)           |
+| Column                   | v1 values                                                   | Prepared for roadmap  |
+| ------------------------ | ----------------------------------------------------------- | --------------------- |
+| `users.role`             | `OWNER`, `CASHIER`                                          | —                     |
+| `products.unit`          | `PCS`, `KG`, `LITER`, `BUNGKUS`, `DUS`                      | —                     |
+| `stock_movements.type`   | `IN`, `SALE`, `ADJUSTMENT`                                  | `RETURN`, `VOID` (v2) |
+| `stock_movements.reason` | `RUSAK`, `KEDALUWARSA`, `HILANG`, `SALAH_HITUNG`, `LAINNYA` | —                     |
+| `sales.payment_method`   | `CASH`                                                      | `QRIS`, etc. (v3)     |
+| `sales.status`           | `COMPLETED`                                                 | `VOIDED` (v2)         |
 
-Enum disimpan sebagai `varchar` dengan `CHECK` constraint (bukan tipe enum PostgreSQL) agar mudah dipetakan dengan `@Enumerated(EnumType.STRING)` di JPA dan mudah diubah lewat migrasi Flyway.
+Enums are stored as `varchar` with a `CHECK` constraint (not a PostgreSQL enum type) so they map easily with `@Enumerated(EnumType.STRING)` in JPA and are easy to change through Flyway migrations.
 
-### 14.4 Aturan Data
+### 14.4 Data Rules
 
-- **Uang:** semua nominal disimpan sebagai `bigint` dalam rupiah, tanpa desimal. Tidak memakai tipe floating point.
-- **Stok:** `stock_movements` adalah sumber kebenaran dan jejak audit; `products.stock` adalah cache yang selalu diperbarui dalam transaksi yang sama. Stok tidak boleh negatif (`CHECK (stock >= 0)`).
-- **Snapshot transaksi:** `sale_items` menyimpan nama, satuan, dan harga saat transaksi, sehingga riwayat tetap akurat walau data produk berubah.
-- **Integritas penjualan:** pembuatan transaksi (insert `sales` + `sale_items`, pengurangan stok, pencatatan `stock_movements`) berjalan dalam satu transaksi database dengan penguncian baris produk. Total dihitung ulang di server, bukan diambil dari frontend.
-- **Tidak ada hapus fisik:** produk dan pengguna dinonaktifkan lewat `is_active`. Foreign key ke `products` dan `users` memakai `ON DELETE RESTRICT`. Kategori hanya bisa dihapus jika tidak memiliki produk (poin 9.6).
-- **Nomor invoice:** unik, format `INV-YYYYMMDD-NNNN` (contoh `INV-20260916-0001`), urutan diulang setiap hari.
-- **Zona waktu:** waktu disimpan sebagai `timestamptz`; tampilan dan laporan harian memakai zona Asia/Jakarta.
-- **Indeks tambahan:** `products(name)` untuk pencarian di kasir, `sales(created_at)` untuk laporan harian dan riwayat, `stock_movements(product_id, created_at)` untuk riwayat per barang.
+- **Money:** all amounts are stored as `bigint` in rupiah, no decimals. No floating-point types.
+- **Stock:** `stock_movements` is the source of truth and audit trail; `products.stock` is a cache that is always updated in the same transaction. Stock must not be negative (`CHECK (stock >= 0)`).
+- **Transaction snapshot:** `sale_items` stores the name, unit, and price at the time of the transaction, so history stays accurate even if product data changes.
+- **Sales integrity:** creating a transaction (insert `sales` + `sale_items`, reduce stock, record `stock_movements`) runs in a single database transaction with row locking on products. The total is recalculated on the server, not taken from the frontend.
+- **No hard deletes:** products and users are deactivated via `is_active`. Foreign keys to `products` and `users` use `ON DELETE RESTRICT`. A category can only be deleted if it has no products (section 9.6).
+- **Invoice number:** unique, format `INV-YYYYMMDD-NNNN` (example `INV-20260916-0001`), sequence resets every day.
+- **Time zone:** time is stored as `timestamptz`; display and daily reports use the Asia/Jakarta zone.
+- **Additional indexes:** `products(name)` for search at the cashier, `sales(created_at)` for daily reports and history, `stock_movements(product_id, created_at)` for per-item history.
