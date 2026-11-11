@@ -1,13 +1,13 @@
 # Local development. Credentials are read from .env (see .env.example), never committed.
 spring:
-  config:
-    import: optional:file:.env[.properties]
   flyway:
     # Dev seed data (users, categories, sample products) only runs in this profile.
-    locations: classpath:db/migration,classpath:db/seed/dev
+    locations: classpath:db/migration,classpath:db/migration-dev
   jpa:
     show-sql: false
 
 logging:
   level:
     com.yoedi.epos: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

@@ -3,6 +3,8 @@ spring:
     name: epos-api
   profiles:
     default: dev
+  config:
+    import: optional:file:.env[.properties]
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -10,12 +12,13 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: validate   # never 'update' or 'create'; schema is owned by Flyway
+      ddl-auto: validate # never 'update' or 'create'; schema is owned by Flyway
     properties:
       hibernate:
         jdbc:
           time_zone: UTC
   flyway:
+    enabled: true
     locations: classpath:db/migration
   mvc:
     problemdetails:
@@ -38,3 +41,8 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+epos:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS}

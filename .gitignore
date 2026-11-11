@@ -1,6 +1,9 @@
 target/
 !.mvn/wrapper/maven-wrapper.jar
 
+# Logs
+*.log
+
 # Secrets
 .env
 
@@ -15,3 +18,6 @@ target/
 
 # OS
 .DS_Store
+
+# Keep .env.example tracked (it contains no real secrets)
+!.env.example
