@@ -21,3 +21,6 @@ target/
 
 # Keep .env.example tracked (it contains no real secrets)
 !.env.example
+
+# Dev prompt scratch file
+docs/prompt-langkah-pengembangan.md
