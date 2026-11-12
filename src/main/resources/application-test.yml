@@ -2,3 +2,9 @@
 spring:
   flyway:
     locations: classpath:db/migration
+
+epos:
+  jwt:
+    # Test-only value so tests do not depend on a local .env. Never use in dev or prod.
+    secret: test-only-jwt-secret-at-least-32-bytes-long
+    expiration-seconds: 28800

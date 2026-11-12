@@ -2,7 +2,7 @@
 spring:
   flyway:
     # Dev seed data (users, categories, sample products) only runs in this profile.
-    locations: classpath:db/migration,classpath:db/migration-dev
+    locations: classpath:db/migration,classpath:db/seed/dev
   jpa:
     show-sql: false
 

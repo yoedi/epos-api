@@ -1,6 +1,7 @@
 package com.yoedi.epos.sale;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yoedi.epos.TestAuth;
 import com.yoedi.epos.TestcontainersConfiguration;
 import com.yoedi.epos.category.Category;
 import com.yoedi.epos.product.Product;
@@ -13,7 +14,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -28,7 +28,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@WithMockUser(roles = "CASHIER")
 @Import({TestcontainersConfiguration.class, SaleTestData.class})
 class SaleControllerTest {
 
@@ -145,18 +144,30 @@ class SaleControllerTest {
     }
 
     @Test
-    void checkout_without_cashier_header_returns400() throws Exception {
+    void checkout_without_token_returns401_UNAUTHORIZED() throws Exception {
         mockMvc.perform(post("/api/sales")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 body(List.of(item(beras.getId(), 1)), "CASH", 100000))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void checkout_takes_the_cashier_from_the_token_and_ignores_a_spoofed_header() throws Exception {
+        mockMvc.perform(post("/api/sales")
+                        .with(TestAuth.as(cashier))
+                        .header("X-Cashier-Id", 999_999)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                body(List.of(item(beras.getId(), 1)), "CASH", 100000))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.cashier.id").value(cashier.getId()));
     }
 
     private ResultActions checkout(Object body) throws Exception {
         return mockMvc.perform(post("/api/sales")
-                .header("X-Cashier-Id", cashier.getId())
+                .with(TestAuth.as(cashier))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(body)));
     }

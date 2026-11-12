@@ -1,6 +1,9 @@
 spring:
   application:
     name: epos-api
+  autoconfigure:
+    # We authenticate with JWT only; skip Boot's default in-memory user (and its generated password log line).
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   profiles:
     default: dev
   config:
