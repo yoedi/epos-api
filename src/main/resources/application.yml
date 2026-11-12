@@ -23,6 +23,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  data:
+    web:
+      pageable:
+        default-page-size: 20 # docs/api-spec.md: size defaults to 20, max 100
+        max-page-size: 100
   mvc:
     problemdetails:
       enabled: true
