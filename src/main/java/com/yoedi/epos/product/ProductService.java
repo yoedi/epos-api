@@ -14,7 +14,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Product business rules: SKU/barcode uniqueness, category existence, stock_status
@@ -141,6 +145,16 @@ public class ProductService {
         Product product = findEntity(id);
         product.setActive(active);
         return toResponse(product, false);
+    }
+
+    /**
+     * Loads products under a pessimistic write lock, sorted by id, for a stock change.
+     * Must run inside the caller's transaction (the lock lives until it ends). Ids that do not
+     * exist are simply missing from the result; the caller decides how to report that.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<Product> lockAllByIdOrdered(Collection<Long> ids) {
+        return productRepository.findAllByIdForUpdate(ids);
     }
 
     private Product findEntity(long id) {
