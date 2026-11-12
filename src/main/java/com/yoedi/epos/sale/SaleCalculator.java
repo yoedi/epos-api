@@ -58,4 +58,19 @@ public final class SaleCalculator {
         }
         return paid - total;
     }
+
+    /**
+     * Average transaction value as whole rupiah, rounded half up; {@code 0} when there are no
+     * transactions. {@code /reports/daily} must use this too so both screens show the same number.
+     */
+    public static long average(long totalRevenue, long transactionCount) {
+        if (totalRevenue < 0 || transactionCount < 0) {
+            throw new IllegalArgumentException(
+                    "revenue and count must not be negative: revenue=" + totalRevenue + ", count=" + transactionCount);
+        }
+        if (transactionCount == 0) {
+            return 0;
+        }
+        return (totalRevenue + transactionCount / 2) / transactionCount;
+    }
 }

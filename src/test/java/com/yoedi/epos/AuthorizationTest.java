@@ -85,6 +85,7 @@ class AuthorizationTest {
             "GET /api/products/{product}",
             "GET /api/products/barcode/{barcode}",
             "POST /api/sales",
+            "GET /api/sales",
     })
     void both_roles_are_allowed(String endpoint) throws Exception {
         int expected = endpoint.startsWith("POST") ? 201 : 200;
@@ -146,6 +147,7 @@ class AuthorizationTest {
             "PATCH /api/products/{product}",
             "PATCH /api/products/{product}/status",
             "POST /api/sales",
+            "GET /api/sales",
             "POST /api/stock/in",
             "POST /api/stock/adjustment",
             "GET /api/stock/movements",

@@ -1,17 +1,23 @@
 package com.yoedi.epos.sale;
 
+import com.yoedi.epos.common.dto.PageResponse;
 import com.yoedi.epos.common.exception.NotFoundException;
 import com.yoedi.epos.product.Product;
 import com.yoedi.epos.product.ProductService;
 import com.yoedi.epos.sale.dto.CreateSaleRequest;
 import com.yoedi.epos.sale.dto.SaleItemRequest;
+import com.yoedi.epos.sale.dto.SaleListItemResponse;
+import com.yoedi.epos.sale.dto.SalePageResponse;
 import com.yoedi.epos.sale.dto.SaleResponse;
+import com.yoedi.epos.sale.dto.SaleSummaryResponse;
 import com.yoedi.epos.sale.mapper.SaleMapper;
 import com.yoedi.epos.stock.InsufficientStockException;
 import com.yoedi.epos.stock.StockService;
+import com.yoedi.epos.user.Role;
 import com.yoedi.epos.user.User;
 import com.yoedi.epos.user.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +27,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -37,6 +44,9 @@ public class SaleService {
     private final StockService stockService;
     private final UserService userService;
     private final SaleMapper saleMapper;
+
+    /** Properties GET /sales may be sorted by (Java names, as in the JPQL). Anything else would fail as a 500. */
+    private static final Set<String> HISTORY_SORT_PROPERTIES = Set.of("id", "invoiceNo", "total", "createdAt");
 
     /**
      * Checkout, in one transaction (AGENTS.md §7). Any exception rolls everything back,
@@ -135,5 +145,44 @@ public class SaleService {
         }
 
         return saleMapper.toResponse(saved);
+    }
+
+    /**
+     * Sales history with a summary over the whole filtered result. Dates are calendar days in the
+     * store time zone, both ends inclusive, and each defaults to today.
+     * <p>
+     * A CASHIER only ever gets their own sales of today: the filters they send are ignored, except
+     * {@code invoiceNo}, which can only narrow the result further.
+     */
+    @Transactional(readOnly = true)
+    public SalePageResponse findHistory(LocalDate startDate, LocalDate endDate, Long cashierId, String invoiceNo,
+                                        long requesterId, Role requesterRole, Pageable pageable) {
+        LocalDate today = LocalDate.now(InvoiceNumberGenerator.BUSINESS_ZONE);
+        if (requesterRole == Role.CASHIER) {
+            startDate = today;
+            endDate = today;
+            cashierId = requesterId;
+        } else {
+            startDate = startDate == null ? today : startDate;
+            endDate = endDate == null ? today : endDate;
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new InvalidDateRangeException();
+        }
+        pageable.getSort().forEach(order -> {
+            if (!HISTORY_SORT_PROPERTIES.contains(order.getProperty())) {
+                throw new InvalidSortException(order.getProperty());
+            }
+        });
+        OffsetDateTime from = startDate.atStartOfDay(InvoiceNumberGenerator.BUSINESS_ZONE).toOffsetDateTime();
+        OffsetDateTime until = endDate.plusDays(1).atStartOfDay(InvoiceNumberGenerator.BUSINESS_ZONE).toOffsetDateTime();
+        String invoiceFilter = invoiceNo == null || invoiceNo.isBlank() ? null : invoiceNo.trim();
+
+        PageResponse<SaleListItemResponse> page = PageResponse.from(
+                saleRepository.searchHistory(from, until, cashierId, invoiceFilter, pageable));
+        SaleSummaryResponse totals = saleRepository.summarizeHistory(from, until, cashierId, invoiceFilter);
+        SaleSummaryResponse summary = new SaleSummaryResponse(totals.totalRevenue(), totals.transactionCount(),
+                SaleCalculator.average(totals.totalRevenue(), totals.transactionCount()));
+        return SalePageResponse.of(page, summary);
     }
 }

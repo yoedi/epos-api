@@ -11,6 +11,8 @@ import com.yoedi.epos.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
+
 /** Builds and cleans up rows for sale tests. Tests share one PostgreSQL container, so always clean up. */
 @Component
 class SaleTestData {
@@ -61,5 +63,42 @@ class SaleTestData {
         product.setStock(stock);
         product.setMinStock(0);
         return productRepository.save(product);
+    }
+
+    User owner() {
+        User user = new User();
+        user.setName("Budi Santoso");
+        user.setUsername("budi");
+        user.setPasswordHash("$2a$10$hash");
+        user.setRole(Role.OWNER);
+        return userRepository.save(user);
+    }
+
+    /** A completed sale at {@code createdAt}: one line per entry of {@code qtys}, all at {@code price} each. */
+    Sale sale(User cashier, String invoiceNo, OffsetDateTime createdAt, Product product, int... qtys) {
+        Sale sale = new Sale();
+        long subtotal = 0;
+        for (int qty : qtys) {
+            SaleItem item = new SaleItem();
+            item.setProductId(product.getId());
+            item.setProductName(product.getName());
+            item.setUnit(product.getUnit());
+            item.setPrice(product.getSellPrice());
+            item.setQty(qty);
+            item.setSubtotal(product.getSellPrice() * qty);
+            subtotal += item.getSubtotal();
+            sale.addItem(item);
+        }
+        sale.setInvoiceNo(invoiceNo);
+        sale.setCashier(cashier);
+        sale.setSubtotal(subtotal);
+        sale.setDiscount(0);
+        sale.setTotal(subtotal);
+        sale.setPaymentMethod(PaymentMethod.CASH);
+        sale.setPaid(subtotal);
+        sale.setChangeAmount(0);
+        sale.setStatus(SaleStatus.COMPLETED);
+        sale.setCreatedAt(createdAt);
+        return saleRepository.save(sale);
     }
 }

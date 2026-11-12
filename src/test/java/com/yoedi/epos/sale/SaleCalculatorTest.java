@@ -96,4 +96,27 @@ class SaleCalculatorTest {
         assertThatThrownBy(() -> SaleCalculator.change(100000, 144500))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void average_isRevenueDividedByCount() {
+        assertThat(SaleCalculator.average(4_305_000, 42)).isEqualTo(102_500);
+    }
+
+    @Test
+    void average_roundsHalfUpToWholeRupiah() {
+        assertThat(SaleCalculator.average(1_875_000, 23)).isEqualTo(81_522); // 81521.74
+        assertThat(SaleCalculator.average(5, 2)).isEqualTo(3);               // 2.5
+        assertThat(SaleCalculator.average(4, 3)).isEqualTo(1);               // 1.33
+    }
+
+    @Test
+    void average_isZeroWithoutTransactions() {
+        assertThat(SaleCalculator.average(0, 0)).isZero();
+    }
+
+    @Test
+    void average_rejectsNegativeInput() {
+        assertThatThrownBy(() -> SaleCalculator.average(-1, 1)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> SaleCalculator.average(1, -1)).isInstanceOf(IllegalArgumentException.class);
+    }
 }
