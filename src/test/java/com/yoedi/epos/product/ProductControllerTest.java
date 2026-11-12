@@ -23,6 +23,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -273,6 +274,36 @@ class ProductControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.errors[0].field").value("sku"));
+    }
+
+    @Test
+    void list_sorts_by_a_known_property() throws Exception {
+        Category category = categoryRepository.save(category("Sembako"));
+        productRepository.save(product("A-1", null, category));
+        productRepository.save(product("B-1", null, category));
+
+        mockMvc.perform(get("/api/products").param("sort", "sku,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].sku").value("B-1"));
+        mockMvc.perform(get("/api/products").param("sort", "costPrice,asc"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void list_sorting_by_an_unknown_property_returns400_VALIDATION_ERROR() throws Exception {
+        mockMvc.perform(get("/api/products").param("sort", "foo,asc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void cashier_cannot_sort_by_cost_price() throws Exception {
+        // Ordering by a hidden field would still leak how the cost prices compare.
+        mockMvc.perform(get("/api/products").with(user("rina").roles("CASHIER")).param("sort", "costPrice,asc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(get("/api/products").with(user("rina").roles("CASHIER")).param("sort", "sellPrice,asc"))
+                .andExpect(status().isOk());
     }
 
     private CreateProductRequest createRequest(Long categoryId) {

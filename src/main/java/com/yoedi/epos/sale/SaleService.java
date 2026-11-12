@@ -1,6 +1,7 @@
 package com.yoedi.epos.sale;
 
 import com.yoedi.epos.common.dto.PageResponse;
+import com.yoedi.epos.common.exception.InvalidSortException;
 import com.yoedi.epos.common.exception.NotFoundException;
 import com.yoedi.epos.product.Product;
 import com.yoedi.epos.product.ProductService;
@@ -169,11 +170,7 @@ public class SaleService {
         if (startDate.isAfter(endDate)) {
             throw new InvalidDateRangeException();
         }
-        pageable.getSort().forEach(order -> {
-            if (!HISTORY_SORT_PROPERTIES.contains(order.getProperty())) {
-                throw new InvalidSortException(order.getProperty());
-            }
-        });
+        InvalidSortException.check(pageable.getSort(), HISTORY_SORT_PROPERTIES);
         OffsetDateTime from = startDate.atStartOfDay(InvoiceNumberGenerator.BUSINESS_ZONE).toOffsetDateTime();
         OffsetDateTime until = endDate.plusDays(1).atStartOfDay(InvoiceNumberGenerator.BUSINESS_ZONE).toOffsetDateTime();
         String invoiceFilter = invoiceNo == null || invoiceNo.isBlank() ? null : invoiceNo.trim();

@@ -257,6 +257,21 @@ class StockControllerTest {
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
+    @Test
+    void movements_sort_by_a_known_property_and_reject_an_unknown_one() throws Exception {
+        stockIn(owner, Map.of("items", List.of(Map.of("product_id", minyak.getId(), "qty", 10))))
+                .andExpect(status().isCreated());
+        stockIn(owner, Map.of("items", List.of(Map.of("product_id", beras.getId(), "qty", 1))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/stock/movements").with(TestAuth.as(owner)).param("sort", "qty,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].qty").value(1));
+        mockMvc.perform(get("/api/stock/movements").with(TestAuth.as(owner)).param("sort", "foo,asc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
     // ---- authorization -----------------------------------------------------------------------
 
     @Test

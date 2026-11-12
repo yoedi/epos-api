@@ -1,6 +1,7 @@
 package com.yoedi.epos.stock;
 
 import com.yoedi.epos.common.dto.PageResponse;
+import com.yoedi.epos.common.exception.InvalidSortException;
 import com.yoedi.epos.common.exception.NotFoundException;
 import com.yoedi.epos.config.JacksonConfig;
 import com.yoedi.epos.product.Product;
@@ -24,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,6 +43,10 @@ public class StockMovementService {
     private final StockService stockService;
     private final UserService userService;
     private final StockMovementMapper stockMovementMapper;
+
+    /** Properties GET /stock/movements may be sorted by (Java names). */
+    private static final Set<String> SORT_PROPERTIES = Set.of("id", "type", "qty", "stockBefore", "stockAfter",
+            "reason", "note", "saleId", "createdAt");
 
     /** Stock in for several products in one transaction; any failure rolls back every item. */
     @Transactional
@@ -76,6 +82,7 @@ public class StockMovementService {
     public PageResponse<StockMovementResponse> findMovements(Long productId, StockMovementType type,
                                                              LocalDate startDate, LocalDate endDate,
                                                              Pageable pageable) {
+        InvalidSortException.check(pageable.getSort(), SORT_PROPERTIES);
         return PageResponse.from(
                 stockMovementRepository.findAll(filter(productId, type, startDate, endDate), pageable),
                 stockMovementMapper::toResponse);

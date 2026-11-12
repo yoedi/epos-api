@@ -3,6 +3,7 @@ package com.yoedi.epos.product;
 import com.yoedi.epos.category.Category;
 import com.yoedi.epos.category.CategoryRepository;
 import com.yoedi.epos.common.dto.PageResponse;
+import com.yoedi.epos.common.exception.InvalidSortException;
 import com.yoedi.epos.common.exception.NotFoundException;
 import com.yoedi.epos.product.dto.CreateProductRequest;
 import com.yoedi.epos.product.dto.ProductResponse;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Product business rules: SKU/barcode uniqueness, category existence, stock_status
@@ -37,6 +39,12 @@ public class ProductService {
     private final StockService stockService;
     private final UserService userService;
 
+    /** Properties GET /products may be sorted by (Java names). cost_price is OWNER-only, see below. */
+    private static final Set<String> SORT_PROPERTIES = Set.of("id", "sku", "barcode", "name", "unit", "sellPrice",
+            "stock", "minStock", "active", "createdAt", "updatedAt", "category.name");
+    private static final Set<String> OWNER_SORT_PROPERTIES = Set.of("id", "sku", "barcode", "name", "unit",
+            "costPrice", "sellPrice", "stock", "minStock", "active", "createdAt", "updatedAt", "category.name");
+
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> search(String search, Long categoryId, String status, Pageable pageable) {
         Boolean onlyActive = switch (status == null ? "" : status) {
@@ -47,6 +55,8 @@ public class ProductService {
         Boolean lowStockOnly = "LOW_STOCK".equals(status) ? true : null;
 
         boolean hideCostPrice = isCashier();
+        // Ordering by cost_price would reveal how the hidden prices compare, so a CASHIER may not do it.
+        InvalidSortException.check(pageable.getSort(), hideCostPrice ? SORT_PROPERTIES : OWNER_SORT_PROPERTIES);
         Page<ProductResponse> page = productRepository
                 .search(trimToNull(search), categoryId, onlyActive, lowStockOnly, pageable)
                 .map(product -> toResponse(product, hideCostPrice));
