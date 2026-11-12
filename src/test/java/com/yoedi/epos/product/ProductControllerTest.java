@@ -1,11 +1,17 @@
 package com.yoedi.epos.product;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yoedi.epos.TestAuth;
 import com.yoedi.epos.TestcontainersConfiguration;
 import com.yoedi.epos.category.Category;
 import com.yoedi.epos.category.CategoryRepository;
 import com.yoedi.epos.product.dto.CreateProductRequest;
 import com.yoedi.epos.product.dto.UpdateStatusRequest;
+import com.yoedi.epos.stock.StockMovementRepository;
+import com.yoedi.epos.user.Role;
+import com.yoedi.epos.user.User;
+import com.yoedi.epos.user.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,10 +48,76 @@ class ProductControllerTest {
     @Autowired
     private CategoryRepository categoryRepository;
 
+    @Autowired
+    private StockMovementRepository stockMovementRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    private User owner;
+
     @BeforeEach
     void cleanUp() {
+        clearAll();
+        // creating a product records who added the initial stock, so it needs a real user row
+        User user = new User();
+        user.setName("Budi Santoso");
+        user.setUsername("budi");
+        user.setPasswordHash("$2a$10$hash");
+        user.setRole(Role.OWNER);
+        owner = userRepository.save(user);
+    }
+
+    @AfterEach
+    void tearDown() {
+        clearAll();
+    }
+
+    private void clearAll() {
+        // children first: every foreign key is ON DELETE RESTRICT
+        stockMovementRepository.deleteAll();
         productRepository.deleteAll();
         categoryRepository.deleteAll();
+        userRepository.deleteAll();
+    }
+
+    @Test
+    void create_with_initial_stock_records_one_IN_movement_named_Stok_awal() throws Exception {
+        Category category = categoryRepository.save(category("Sembako"));
+
+        mockMvc.perform(post("/api/products")
+                        .with(TestAuth.as(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest(category.getId()))))
+                .andExpect(status().isCreated());
+
+        var movements = stockMovementRepository.findAll();
+        org.assertj.core.api.Assertions.assertThat(movements).singleElement().satisfies(m -> {
+            org.assertj.core.api.Assertions.assertThat(m.getType().name()).isEqualTo("IN");
+            org.assertj.core.api.Assertions.assertThat(m.getQty()).isEqualTo(24);
+            org.assertj.core.api.Assertions.assertThat(m.getStockBefore()).isZero();
+            org.assertj.core.api.Assertions.assertThat(m.getStockAfter()).isEqualTo(24);
+            org.assertj.core.api.Assertions.assertThat(m.getNote()).isEqualTo("Stok awal");
+            org.assertj.core.api.Assertions.assertThat(m.getUser().getId()).isEqualTo(owner.getId());
+        });
+    }
+
+    @Test
+    void create_with_zero_initial_stock_records_no_movement() throws Exception {
+        Category category = categoryRepository.save(category("Sembako"));
+        CreateProductRequest base = createRequest(category.getId());
+        CreateProductRequest request = new CreateProductRequest(base.sku(), base.barcode(), base.name(),
+                base.categoryId(), base.unit(), base.costPrice(), base.sellPrice(), 0, base.minStock());
+
+        mockMvc.perform(post("/api/products")
+                        .with(TestAuth.as(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.stock").value(0))
+                .andExpect(jsonPath("$.stock_status").value("OUT_OF_STOCK"));
+
+        org.assertj.core.api.Assertions.assertThat(stockMovementRepository.count()).isZero();
     }
 
     @Test
@@ -53,6 +125,7 @@ class ProductControllerTest {
         Category category = categoryRepository.save(category("Sembako"));
 
         mockMvc.perform(post("/api/products")
+                        .with(TestAuth.as(owner))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest(category.getId()))))
                 .andExpect(status().isCreated())
@@ -75,6 +148,7 @@ class ProductControllerTest {
         productRepository.save(product("KCP-001", "8991111222333", category));
 
         mockMvc.perform(post("/api/products")
+                        .with(TestAuth.as(owner))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest(category.getId()))))
                 .andExpect(status().isConflict())
@@ -87,6 +161,7 @@ class ProductControllerTest {
         productRepository.save(product("KCP-999", "8991111222333", category));
 
         mockMvc.perform(post("/api/products")
+                        .with(TestAuth.as(owner))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest(category.getId()))))
                 .andExpect(status().isConflict())
@@ -96,6 +171,7 @@ class ProductControllerTest {
     @Test
     void create_missingCategory_returns404_with_code() throws Exception {
         mockMvc.perform(post("/api/products")
+                        .with(TestAuth.as(owner))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest(999L))))
                 .andExpect(status().isNotFound())
@@ -111,6 +187,7 @@ class ProductControllerTest {
                 request.initialStock(), request.minStock());
 
         mockMvc.perform(post("/api/products")
+                        .with(TestAuth.as(owner))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(blank)))
                 .andExpect(status().isBadRequest())

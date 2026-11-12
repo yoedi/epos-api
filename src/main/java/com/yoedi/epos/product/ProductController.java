@@ -1,5 +1,6 @@
 package com.yoedi.epos.product;
 
+import com.yoedi.epos.auth.AuthenticatedUser;
 import com.yoedi.epos.common.dto.PageResponse;
 import com.yoedi.epos.product.dto.CreateProductRequest;
 import com.yoedi.epos.product.dto.ProductResponse;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,8 +50,10 @@ public class ProductController {
 
     @PostMapping
     @PreAuthorize("hasRole('OWNER')")
-    public ResponseEntity<ProductResponse> create(@Valid @RequestBody CreateProductRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
+    public ResponseEntity<ProductResponse> create(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @Valid @RequestBody CreateProductRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request, principal.id()));
     }
 
     @PatchMapping("/{id}")

@@ -80,6 +80,7 @@ Validation errors include a list of fields:
 | `INSUFFICIENT_PAYMENT` | 422    | Amount received is less than the total  |
 | `PRODUCT_INACTIVE`     | 422    | Inactive products cannot be sold        |
 | `EMPTY_CART`           | 422    | Transaction with no items               |
+| `NO_STOCK_DIFFERENCE`  | 422    | Stock adjustment with no difference     |
 | `INTERNAL_ERROR`       | 500    | Unexpected error                        |
 
 ### Access rights summary
@@ -416,7 +417,7 @@ Screen 9.8. One product per request.
 }
 ```
 
-The client sends the **physical count result**, not the difference. The server computes `qty = physical_stock - current_stock`. If the difference is 0, return 422 with the detail "Tidak ada selisih stok".
+The client sends the **physical count result**, not the difference. The server computes `qty = physical_stock - current_stock`. If the difference is 0, return 422 with code `NO_STOCK_DIFFERENCE` and the detail "Tidak ada selisih stok".
 
 **Response 201:** movement object as above, with `type: "ADJUSTMENT"` and `reason` filled in.
 

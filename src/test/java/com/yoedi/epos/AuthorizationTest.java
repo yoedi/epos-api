@@ -103,6 +103,9 @@ class AuthorizationTest {
             "POST /api/products",
             "PATCH /api/products/{product}",
             "PATCH /api/products/{product}/status",
+            "POST /api/stock/in",
+            "POST /api/stock/adjustment",
+            "GET /api/stock/movements",
     })
     void owner_only_endpoints_allow_owner_and_forbid_cashier(String endpoint) throws Exception {
         int expectedForOwner = endpoint.startsWith("POST") ? 201 : endpoint.startsWith("DELETE") ? 204 : 200;
@@ -143,6 +146,9 @@ class AuthorizationTest {
             "PATCH /api/products/{product}",
             "PATCH /api/products/{product}/status",
             "POST /api/sales",
+            "POST /api/stock/in",
+            "POST /api/stock/adjustment",
+            "GET /api/stock/movements",
     })
     void without_token_returns401_UNAUTHORIZED(String endpoint) throws Exception {
         send(endpoint, null)
@@ -222,6 +228,12 @@ class AuthorizationTest {
                     """.formatted(categoryId);
             case "PATCH /api/products/{product}" -> "{\"sell_price\": 80000}";
             case "PATCH /api/products/{product}/status" -> "{\"is_active\": false}";
+            case "POST /api/stock/in" -> """
+                    {"items": [{"product_id": %d, "qty": 5}]}
+                    """.formatted(productId);
+            case "POST /api/stock/adjustment" -> """
+                    {"product_id": %d, "physical_stock": 20, "reason": "RUSAK"}
+                    """.formatted(productId);
             case "POST /api/sales" -> """
                     {"items": [{"product_id": %d, "qty": 1}], "payment_method": "CASH", "paid": 100000}
                     """.formatted(productId);

@@ -8,8 +8,7 @@ import jakarta.validation.constraints.Size;
 
 /**
  * Payload for creating a product (docs/api-spec.md §3 POST /products).
- * {@code initialStock} seeds {@code products.stock}; the actual stock movement is
- * recorded by the stock feature when it exists.
+ * A positive {@code initialStock} is recorded as an IN movement with the note "Stok awal".
  */
 public record CreateProductRequest(
         @NotBlank(message = "SKU wajib diisi")

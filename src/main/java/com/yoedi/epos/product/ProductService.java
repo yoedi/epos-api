@@ -8,6 +8,9 @@ import com.yoedi.epos.product.dto.CreateProductRequest;
 import com.yoedi.epos.product.dto.ProductResponse;
 import com.yoedi.epos.product.dto.UpdateProductRequest;
 import com.yoedi.epos.product.mapper.ProductMapper;
+import com.yoedi.epos.stock.StockService;
+import com.yoedi.epos.user.User;
+import com.yoedi.epos.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +34,8 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
+    private final StockService stockService;
+    private final UserService userService;
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> search(String search, Long categoryId, String status, Pageable pageable) {
@@ -63,7 +68,7 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductResponse create(CreateProductRequest request) {
+    public ProductResponse create(CreateProductRequest request, long userId) {
         String sku = request.sku().trim();
         String barcode = trimToNull(request.barcode());
         if (productRepository.existsBySku(sku)) {
@@ -74,6 +79,7 @@ public class ProductService {
         }
 
         Category category = findCategory(request.categoryId());
+        User user = userService.getById(userId);
 
         Product product = new Product();
         product.setSku(sku);
@@ -83,13 +89,14 @@ public class ProductService {
         product.setUnit(request.unit());
         product.setCostPrice(request.costPrice());
         product.setSellPrice(request.sellPrice());
-        product.setStock(request.initialStock());
+        product.setStock(0); // initial stock is added below through a movement, so history stays complete
         product.setMinStock(request.minStock());
         product.setActive(true);
 
         Product saved = productRepository.save(product);
-        // NOTE: the "Stok awal" stock_movement for initial_stock > 0 is created by the
-        // stock feature (stage 4). products.stock is seeded here so reports stay consistent.
+        if (request.initialStock() > 0) {
+            stockService.recordIn(saved, request.initialStock(), "Stok awal", user);
+        }
         return toResponse(saved, false);
     }
 
