@@ -86,6 +86,7 @@ class AuthorizationTest {
             "GET /api/products/barcode/{barcode}",
             "POST /api/sales",
             "GET /api/sales",
+            "GET /api/store-settings",
     })
     void both_roles_are_allowed(String endpoint) throws Exception {
         int expected = endpoint.startsWith("POST") ? 201 : 200;
@@ -107,6 +108,7 @@ class AuthorizationTest {
             "POST /api/stock/in",
             "POST /api/stock/adjustment",
             "GET /api/stock/movements",
+            "PUT /api/store-settings",
     })
     void owner_only_endpoints_allow_owner_and_forbid_cashier(String endpoint) throws Exception {
         int expectedForOwner = endpoint.startsWith("POST") ? 201 : endpoint.startsWith("DELETE") ? 204 : 200;
@@ -151,6 +153,8 @@ class AuthorizationTest {
             "POST /api/stock/in",
             "POST /api/stock/adjustment",
             "GET /api/stock/movements",
+            "GET /api/store-settings",
+            "PUT /api/store-settings",
     })
     void without_token_returns401_UNAUTHORIZED(String endpoint) throws Exception {
         send(endpoint, null)
@@ -236,6 +240,7 @@ class AuthorizationTest {
             case "POST /api/stock/adjustment" -> """
                     {"product_id": %d, "physical_stock": 20, "reason": "RUSAK"}
                     """.formatted(productId);
+            case "PUT /api/store-settings" -> "{\"store_name\": \"Toko Berkah Jaya\"}";
             case "POST /api/sales" -> """
                     {"items": [{"product_id": %d, "qty": 1}], "payment_method": "CASH", "paid": 100000}
                     """.formatted(productId);

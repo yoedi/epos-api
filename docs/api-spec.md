@@ -496,6 +496,15 @@ Used by the app header and receipts. Accessible by all roles.
 **Request:** same object as the response.
 **Response 200:** the updated object.
 
+**Validation (400 `VALIDATION_ERROR`):**
+
+- `store_name` is required, max 100 characters.
+- `address` max 255, `phone` max 30, `receipt_footer` max 255 characters.
+- `address`, `phone`, and `receipt_footer` are optional. A missing, empty, or whitespace-only value is stored as `null` and returned as `null`.
+- Leading and trailing whitespace is trimmed.
+
+The store has exactly one settings record, so there is no `id` in the request or response and no create or delete endpoint.
+
 ---
 
 ## 8. Users
