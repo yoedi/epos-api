@@ -15,7 +15,7 @@ import java.time.OffsetDateTime;
 
 /** Builds and cleans up rows for sale tests. Tests share one PostgreSQL container, so always clean up. */
 @Component
-class SaleTestData {
+public class SaleTestData {
 
     @Autowired
     UserRepository userRepository;
@@ -29,7 +29,7 @@ class SaleTestData {
     StockMovementRepository stockMovementRepository;
 
     /** Children first: every foreign key is ON DELETE RESTRICT. */
-    void clear() {
+    public void clear() {
         stockMovementRepository.deleteAll();
         saleRepository.deleteAll();
         productRepository.deleteAll();
@@ -37,7 +37,7 @@ class SaleTestData {
         userRepository.deleteAll();
     }
 
-    User cashier() {
+    public User cashier() {
         User user = new User();
         user.setName("Rina Lestari");
         user.setUsername("rina");
@@ -46,13 +46,13 @@ class SaleTestData {
         return userRepository.save(user);
     }
 
-    Category category() {
+    public Category category() {
         Category category = new Category();
         category.setName("Sembako");
         return categoryRepository.save(category);
     }
 
-    Product product(Category category, String sku, String name, long sellPrice, int stock) {
+    public Product product(Category category, String sku, String name, long sellPrice, int stock) {
         Product product = new Product();
         product.setSku(sku);
         product.setName(name);
@@ -65,7 +65,7 @@ class SaleTestData {
         return productRepository.save(product);
     }
 
-    User owner() {
+    public User owner() {
         User user = new User();
         user.setName("Budi Santoso");
         user.setUsername("budi");
@@ -75,7 +75,7 @@ class SaleTestData {
     }
 
     /** A completed sale at {@code createdAt}: one line per entry of {@code qtys}, all at {@code price} each. */
-    Sale sale(User cashier, String invoiceNo, OffsetDateTime createdAt, Product product, int... qtys) {
+    public Sale sale(User cashier, String invoiceNo, OffsetDateTime createdAt, Product product, int... qtys) {
         Sale sale = new Sale();
         long subtotal = 0;
         for (int qty : qtys) {

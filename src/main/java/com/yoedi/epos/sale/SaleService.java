@@ -6,6 +6,8 @@ import com.yoedi.epos.common.exception.NotFoundException;
 import com.yoedi.epos.product.Product;
 import com.yoedi.epos.product.ProductService;
 import com.yoedi.epos.sale.dto.CreateSaleRequest;
+import com.yoedi.epos.sale.dto.HourlySalesResponse;
+import com.yoedi.epos.sale.dto.ProductSalesSummary;
 import com.yoedi.epos.sale.dto.SaleItemRequest;
 import com.yoedi.epos.sale.dto.SaleListItemResponse;
 import com.yoedi.epos.sale.dto.SalePageResponse;
@@ -18,6 +20,7 @@ import com.yoedi.epos.user.Role;
 import com.yoedi.epos.user.User;
 import com.yoedi.epos.user.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -181,5 +184,32 @@ public class SaleService {
         SaleSummaryResponse summary = new SaleSummaryResponse(totals.totalRevenue(), totals.transactionCount(),
                 SaleCalculator.average(totals.totalRevenue(), totals.transactionCount()));
         return SalePageResponse.of(page, summary);
+    }
+
+    /** Revenue, count, and average of every sale on one calendar day in the store time zone. */
+    @Transactional(readOnly = true)
+    public SaleSummaryResponse summarizeDay(LocalDate day) {
+        SaleSummaryResponse totals = saleRepository.summarizeHistory(startOfDay(day), startOfDay(day.plusDays(1)), null, null);
+        return new SaleSummaryResponse(totals.totalRevenue(), totals.transactionCount(),
+                SaleCalculator.average(totals.totalRevenue(), totals.transactionCount()));
+    }
+
+    /** Sales per hour of one day (store time zone). Only hours that have sales are returned, in hour order. */
+    @Transactional(readOnly = true)
+    public List<HourlySalesResponse> hourlySales(LocalDate day) {
+        return saleRepository.findHourlySales(startOfDay(day), startOfDay(day.plusDays(1)),
+                        InvoiceNumberGenerator.BUSINESS_ZONE.getId()).stream()
+                .map(row -> new HourlySalesResponse(row.getHour(), row.getTotal(), row.getTransactionCount()))
+                .toList();
+    }
+
+    /** The {@code limit} products with the highest revenue on one day (store time zone), highest first. */
+    @Transactional(readOnly = true)
+    public List<ProductSalesSummary> topProducts(LocalDate day, int limit) {
+        return saleRepository.findTopProducts(startOfDay(day), startOfDay(day.plusDays(1)), PageRequest.of(0, limit));
+    }
+
+    private static OffsetDateTime startOfDay(LocalDate day) {
+        return day.atStartOfDay(InvoiceNumberGenerator.BUSINESS_ZONE).toOffsetDateTime();
     }
 }

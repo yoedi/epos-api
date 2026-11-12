@@ -49,6 +49,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                          Pageable pageable);
 
     /**
+     * Active products at or below their minimum stock (this includes empty ones), emptiest first.
+     * Inactive products are left out: they cannot be sold, so restocking them is not a to-do.
+     */
+    @Query("select p from Product p where p.active = true and p.stock <= p.minStock order by p.stock, p.name, p.id")
+    List<Product> findLowStock();
+
+    /**
      * Loads products with {@code SELECT ... FOR UPDATE}, sorted by id. Always lock in id order:
      * two transactions buying the same products in a different order would otherwise deadlock.
      */

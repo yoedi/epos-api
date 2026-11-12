@@ -1,5 +1,6 @@
 package com.yoedi.epos.sale;
 
+import com.yoedi.epos.sale.dto.ProductSalesSummary;
 import com.yoedi.epos.sale.dto.SaleListItemResponse;
 import com.yoedi.epos.sale.dto.SaleSummaryResponse;
 import org.springframework.data.domain.Page;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface SaleRepository extends JpaRepository<Sale, Long> {
@@ -46,6 +48,48 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
                                          @Param("until") OffsetDateTime until,
                                          @Param("cashierId") Long cashierId,
                                          @Param("invoiceNo") String invoiceNo);
+
+    /** One row of {@link #findHourlySales}; the getter names match the column aliases. */
+    interface HourlySalesRow {
+        int getHour();
+
+        long getTotal();
+
+        long getTransactionCount();
+    }
+
+    /**
+     * Sales grouped by hour of day in {@code zone}, only hours that have sales. Native because the
+     * hour has to be taken in the store time zone ({@code at time zone}); JPQL would use the
+     * session zone (UTC). The casts keep the numeric types: sum(bigint) is numeric in PostgreSQL.
+     */
+    @Query(value = """
+            select cast(extract(hour from s.created_at at time zone cast(:zone as text)) as integer) as "hour",
+                   cast(sum(s.total) as bigint) as "total",
+                   count(*) as "transactionCount"
+            from sales s
+            where s.created_at >= :from and s.created_at < :until
+            group by 1
+            order by 1
+            """, nativeQuery = true)
+    List<HourlySalesRow> findHourlySales(@Param("from") OffsetDateTime from,
+                                         @Param("until") OffsetDateTime until,
+                                         @Param("zone") String zone);
+
+    /**
+     * Best-selling products in the period by revenue, highest first (ties: lowest product id, so the
+     * order is stable). The size comes from {@code pageable}.
+     */
+    @Query("""
+            select new com.yoedi.epos.sale.dto.ProductSalesSummary(i.productId, sum(i.qty), sum(i.subtotal))
+            from SaleItem i
+            where i.sale.createdAt >= :from and i.sale.createdAt < :until
+            group by i.productId
+            order by sum(i.subtotal) desc, i.productId asc
+            """)
+    List<ProductSalesSummary> findTopProducts(@Param("from") OffsetDateTime from,
+                                              @Param("until") OffsetDateTime until,
+                                              Pageable pageable);
 
     /** Highest invoice number starting with {@code prefix} (e.g. {@code INV-20260916-}), if any. */
     @Query("select max(s.invoiceNo) from Sale s where s.invoiceNo like concat(:prefix, '%')")

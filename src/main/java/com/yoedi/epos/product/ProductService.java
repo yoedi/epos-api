@@ -6,6 +6,8 @@ import com.yoedi.epos.common.dto.PageResponse;
 import com.yoedi.epos.common.exception.InvalidSortException;
 import com.yoedi.epos.common.exception.NotFoundException;
 import com.yoedi.epos.product.dto.CreateProductRequest;
+import com.yoedi.epos.product.dto.LowStockProductResponse;
+import com.yoedi.epos.product.dto.ProductRefResponse;
 import com.yoedi.epos.product.dto.ProductResponse;
 import com.yoedi.epos.product.dto.UpdateProductRequest;
 import com.yoedi.epos.product.mapper.ProductMapper;
@@ -23,7 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Product business rules: SKU/barcode uniqueness, category existence, stock_status
@@ -75,6 +80,30 @@ public class ProductService {
                 .orElseThrow(() -> new NotFoundException(
                         "Barang dengan barcode " + barcode + " tidak ditemukan"));
         return toResponse(product, isCashier());
+    }
+
+    /**
+     * Active products at or below {@code min_stock}, emptiest first. Includes products that are out
+     * of stock ({@code OUT_OF_STOCK}), which need restocking most.
+     */
+    @Transactional(readOnly = true)
+    public List<LowStockProductResponse> findLowStock() {
+        return productRepository.findLowStock().stream()
+                .map(product -> new LowStockProductResponse(product.getId(), product.getSku(), product.getName(),
+                        product.getStock(), product.getMinStock(),
+                        stockStatus(product.getStock(), product.getMinStock())))
+                .toList();
+    }
+
+    /** Current SKU and name of the given products, by id. Unknown ids are simply missing from the map. */
+    @Transactional(readOnly = true)
+    public Map<Long, ProductRefResponse> findRefsByIds(Collection<Long> ids) {
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return productRepository.findAllById(ids).stream()
+                .map(product -> new ProductRefResponse(product.getId(), product.getSku(), product.getName()))
+                .collect(Collectors.toMap(ProductRefResponse::id, Function.identity()));
     }
 
     @Transactional
