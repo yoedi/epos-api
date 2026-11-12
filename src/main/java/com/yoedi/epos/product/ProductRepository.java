@@ -31,12 +31,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * and life status. {@code lowStockOnly} matches products where stock is not empty
      * but at or below min_stock (the LOW_STOCK status filter).
      */
+    // cast(... as string): a null :search is otherwise bound as bytea and PostgreSQL rejects lower(bytea).
     @Query("""
             select p from Product p
-            where (:search is null
-                   or lower(p.name) like lower(concat('%', :search, '%'))
-                   or lower(p.sku) like lower(concat('%', :search, '%'))
-                   or lower(coalesce(p.barcode, '')) like lower(concat('%', :search, '%')))
+            where (cast(:search as string) is null
+                   or lower(p.name) like lower(concat('%', cast(:search as string), '%'))
+                   or lower(p.sku) like lower(concat('%', cast(:search as string), '%'))
+                   or lower(coalesce(p.barcode, '')) like lower(concat('%', cast(:search as string), '%')))
               and (:categoryId is null or p.category.id = :categoryId)
               and (:onlyActive is null or p.active = :onlyActive)
               and (:lowStockOnly is null or (p.stock > 0 and p.stock <= p.minStock))
