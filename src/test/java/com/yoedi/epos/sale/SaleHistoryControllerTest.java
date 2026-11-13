@@ -191,6 +191,15 @@ class SaleHistoryControllerTest {
     }
 
     @Test
+    void sorts_by_snake_case_names_and_rejects_camel_case() throws Exception {
+        history(owner, "?sort=created_at,desc").andExpect(status().isOk());
+        history(owner, "?sort=invoice_no,asc").andExpect(status().isOk());
+        history(owner, "?sort=createdAt,desc")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     void sorting_by_an_unknown_property_returns400_VALIDATION_ERROR() throws Exception {
         history(owner, "?sort=foo,asc")
                 .andExpect(status().isBadRequest())

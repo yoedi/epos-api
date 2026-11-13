@@ -50,13 +50,4 @@ public class InvalidSortException extends BusinessException {
         }
         return SNAKE_SEGMENT.matcher(name).replaceAll(m -> m.group(1).toUpperCase());
     }
-
-    /** Throws if {@code sort} contains a property that is not in {@code allowed} (Java property names). */
-    public static void check(Sort sort, Set<String> allowed) {
-        sort.forEach(order -> {
-            if (!allowed.contains(order.getProperty())) {
-                throw new InvalidSortException(order.getProperty());
-            }
-        });
-    }
 }

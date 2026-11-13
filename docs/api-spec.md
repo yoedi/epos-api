@@ -23,6 +23,8 @@ ISO-8601 with offset: `"2026-09-16T14:32:10+07:00"`.
 
 Query params: `page` (starts at 0, default 0), `size` (default 20, max 100), `sort` (example `name,asc`).
 
+`sort` uses the same `snake_case` names as the response fields (for example `created_at,desc`, `sell_price,asc`, `is_active,desc`). A name the endpoint does not support, including a camelCase one, returns 400 `VALIDATION_ERROR`.
+
 Shape of a paginated list response:
 
 ```json

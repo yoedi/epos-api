@@ -52,8 +52,8 @@ public class SaleService {
     private final StoreSettingsService storeSettingsService;
     private final SaleMapper saleMapper;
 
-    /** Properties GET /sales may be sorted by (Java names, as in the JPQL). Anything else would fail as a 500. */
-    private static final Set<String> HISTORY_SORT_PROPERTIES = Set.of("id", "invoiceNo", "total", "createdAt");
+    /** Properties GET /sales may be sorted by (snake_case, as in the JSON). Anything else would fail as a 500. */
+    private static final Set<String> HISTORY_SORT_PROPERTIES = Set.of("id", "invoice_no", "total", "created_at");
 
     /**
      * Checkout, in one transaction (AGENTS.md §7). Any exception rolls everything back,
@@ -197,13 +197,13 @@ public class SaleService {
         if (startDate.isAfter(endDate)) {
             throw new InvalidDateRangeException();
         }
-        InvalidSortException.check(pageable.getSort(), HISTORY_SORT_PROPERTIES);
+        Pageable entitySort = InvalidSortException.translate(pageable, HISTORY_SORT_PROPERTIES);
         OffsetDateTime from = startDate.atStartOfDay(InvoiceNumberGenerator.BUSINESS_ZONE).toOffsetDateTime();
         OffsetDateTime until = endDate.plusDays(1).atStartOfDay(InvoiceNumberGenerator.BUSINESS_ZONE).toOffsetDateTime();
         String invoiceFilter = invoiceNo == null || invoiceNo.isBlank() ? null : invoiceNo.trim();
 
         PageResponse<SaleListItemResponse> page = PageResponse.from(
-                saleRepository.searchHistory(from, until, cashierId, invoiceFilter, pageable));
+                saleRepository.searchHistory(from, until, cashierId, invoiceFilter, entitySort));
         SaleSummaryResponse totals = saleRepository.summarizeHistory(from, until, cashierId, invoiceFilter);
         SaleSummaryResponse summary = new SaleSummaryResponse(totals.totalRevenue(), totals.transactionCount(),
                 SaleCalculator.average(totals.totalRevenue(), totals.transactionCount()));

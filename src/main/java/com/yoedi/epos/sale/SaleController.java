@@ -48,7 +48,7 @@ public class SaleController {
             @RequestParam(name = "cashier_id", required = false) Long cashierId,
             @RequestParam(name = "invoice_no", required = false) String invoiceNo,
             // @SortDefault, not @PageableDefault: the latter hard-codes size=10 and ignores the global default of 20
-            @SortDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
+            @SortDefault(sort = {"created_at", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
         return saleService.findHistory(startDate, endDate, cashierId, invoiceNo,
                 principal.id(), principal.role(), pageable);
     }

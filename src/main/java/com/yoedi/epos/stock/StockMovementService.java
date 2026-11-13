@@ -44,9 +44,9 @@ public class StockMovementService {
     private final UserService userService;
     private final StockMovementMapper stockMovementMapper;
 
-    /** Properties GET /stock/movements may be sorted by (Java names). */
-    private static final Set<String> SORT_PROPERTIES = Set.of("id", "type", "qty", "stockBefore", "stockAfter",
-            "reason", "note", "saleId", "createdAt");
+    /** Properties GET /stock/movements may be sorted by (snake_case, as in the JSON). */
+    private static final Set<String> SORT_PROPERTIES = Set.of("id", "type", "qty", "stock_before", "stock_after",
+            "reason", "note", "sale_id", "created_at");
 
     /** Stock in for several products in one transaction; any failure rolls back every item. */
     @Transactional
@@ -82,9 +82,9 @@ public class StockMovementService {
     public PageResponse<StockMovementResponse> findMovements(Long productId, StockMovementType type,
                                                              LocalDate startDate, LocalDate endDate,
                                                              Pageable pageable) {
-        InvalidSortException.check(pageable.getSort(), SORT_PROPERTIES);
+        Pageable entitySort = InvalidSortException.translate(pageable, SORT_PROPERTIES);
         return PageResponse.from(
-                stockMovementRepository.findAll(filter(productId, type, startDate, endDate), pageable),
+                stockMovementRepository.findAll(filter(productId, type, startDate, endDate), entitySort),
                 stockMovementMapper::toResponse);
     }
 

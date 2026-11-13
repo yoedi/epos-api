@@ -56,7 +56,7 @@ public class StockController {
             @RequestParam(name = "start_date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(name = "end_date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             // @SortDefault, not @PageableDefault: the latter hard-codes size=10 and ignores the global default of 20
-            @SortDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
+            @SortDefault(sort = {"created_at", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
         return stockMovementService.findMovements(productId, type, startDate, endDate, pageable);
     }
 }

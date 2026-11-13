@@ -272,6 +272,17 @@ class StockControllerTest {
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
+    @Test
+    void movements_sort_by_snake_case_names_and_reject_camel_case() throws Exception {
+        for (String property : List.of("created_at", "stock_before", "stock_after", "sale_id")) {
+            mockMvc.perform(get("/api/stock/movements").with(TestAuth.as(owner)).param("sort", property + ",desc"))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(get("/api/stock/movements").with(TestAuth.as(owner)).param("sort", "createdAt,desc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
     // ---- authorization -----------------------------------------------------------------------
 
     @Test
