@@ -44,11 +44,11 @@ public class ProductService {
     private final StockService stockService;
     private final UserService userService;
 
-    /** Properties GET /products may be sorted by (Java names). cost_price is OWNER-only, see below. */
-    private static final Set<String> SORT_PROPERTIES = Set.of("id", "sku", "barcode", "name", "unit", "sellPrice",
-            "stock", "minStock", "active", "createdAt", "updatedAt", "category.name");
+    /** Properties GET /products may be sorted by (snake_case, as in the JSON). cost_price is OWNER-only, see below. */
+    private static final Set<String> SORT_PROPERTIES = Set.of("id", "sku", "barcode", "name", "unit", "sell_price",
+            "stock", "min_stock", "is_active", "created_at", "updated_at", "category.name");
     private static final Set<String> OWNER_SORT_PROPERTIES = Set.of("id", "sku", "barcode", "name", "unit",
-            "costPrice", "sellPrice", "stock", "minStock", "active", "createdAt", "updatedAt", "category.name");
+            "cost_price", "sell_price", "stock", "min_stock", "is_active", "created_at", "updated_at", "category.name");
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> search(String search, Long categoryId, String status, Pageable pageable) {
@@ -61,9 +61,10 @@ public class ProductService {
 
         boolean hideCostPrice = isCashier();
         // Ordering by cost_price would reveal how the hidden prices compare, so a CASHIER may not do it.
-        InvalidSortException.check(pageable.getSort(), hideCostPrice ? SORT_PROPERTIES : OWNER_SORT_PROPERTIES);
+        Pageable entitySort = InvalidSortException.translate(pageable,
+                hideCostPrice ? SORT_PROPERTIES : OWNER_SORT_PROPERTIES);
         Page<ProductResponse> page = productRepository
-                .search(trimToNull(search), categoryId, onlyActive, lowStockOnly, pageable)
+                .search(trimToNull(search), categoryId, onlyActive, lowStockOnly, entitySort)
                 .map(product -> toResponse(product, hideCostPrice));
         return PageResponse.from(page);
     }
