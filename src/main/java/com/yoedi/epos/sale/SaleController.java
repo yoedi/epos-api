@@ -2,6 +2,7 @@ package com.yoedi.epos.sale;
 
 import com.yoedi.epos.auth.AuthenticatedUser;
 import com.yoedi.epos.sale.dto.CreateSaleRequest;
+import com.yoedi.epos.sale.dto.SaleDetailResponse;
 import com.yoedi.epos.sale.dto.SalePageResponse;
 import com.yoedi.epos.sale.dto.SaleResponse;
 import jakarta.validation.Valid;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,5 +51,12 @@ public class SaleController {
             @SortDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
         return saleService.findHistory(startDate, endDate, cashierId, invoiceNo,
                 principal.id(), principal.role(), pageable);
+    }
+
+    // Both roles may call this; a CASHIER gets 404 for any sale that is not their own of today.
+    @GetMapping("/{id}")
+    public SaleDetailResponse findDetail(@AuthenticationPrincipal AuthenticatedUser principal,
+                                         @PathVariable long id) {
+        return saleService.findDetail(id, principal.id(), principal.role());
     }
 }

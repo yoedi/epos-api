@@ -8,6 +8,7 @@ import com.yoedi.epos.product.ProductService;
 import com.yoedi.epos.sale.dto.CreateSaleRequest;
 import com.yoedi.epos.sale.dto.HourlySalesResponse;
 import com.yoedi.epos.sale.dto.ProductSalesSummary;
+import com.yoedi.epos.sale.dto.SaleDetailResponse;
 import com.yoedi.epos.sale.dto.SaleItemRequest;
 import com.yoedi.epos.sale.dto.SaleListItemResponse;
 import com.yoedi.epos.sale.dto.SalePageResponse;
@@ -16,6 +17,7 @@ import com.yoedi.epos.sale.dto.SaleSummaryResponse;
 import com.yoedi.epos.sale.mapper.SaleMapper;
 import com.yoedi.epos.stock.InsufficientStockException;
 import com.yoedi.epos.stock.StockService;
+import com.yoedi.epos.store.StoreSettingsService;
 import com.yoedi.epos.user.Role;
 import com.yoedi.epos.user.User;
 import com.yoedi.epos.user.UserService;
@@ -47,6 +49,7 @@ public class SaleService {
     private final ProductService productService;
     private final StockService stockService;
     private final UserService userService;
+    private final StoreSettingsService storeSettingsService;
     private final SaleMapper saleMapper;
 
     /** Properties GET /sales may be sorted by (Java names, as in the JPQL). Anything else would fail as a 500. */
@@ -149,6 +152,27 @@ public class SaleService {
         }
 
         return saleMapper.toResponse(saved);
+    }
+
+    /**
+     * One sale with the store info, for the detail drawer and receipt reprint.
+     * <p>
+     * A CASHIER can only open their own sales of today. Anything else is reported as not found
+     * (not forbidden), so the existence of other people's sales is not revealed.
+     */
+    @Transactional(readOnly = true)
+    public SaleDetailResponse findDetail(long id, long requesterId, Role requesterRole) {
+        Sale sale = saleRepository.findById(id)
+                .filter(found -> requesterRole != Role.CASHIER || isOwnSaleOfToday(found, requesterId))
+                .orElseThrow(() -> new NotFoundException("Transaksi dengan id " + id + " tidak ditemukan"));
+        return SaleDetailResponse.of(saleMapper.toResponse(sale), storeSettingsService.get());
+    }
+
+    private static boolean isOwnSaleOfToday(Sale sale, long cashierId) {
+        LocalDate today = LocalDate.now(InvoiceNumberGenerator.BUSINESS_ZONE);
+        return sale.getCashier().getId() == cashierId
+                && sale.getCreatedAt().atZoneSameInstant(InvoiceNumberGenerator.BUSINESS_ZONE)
+                        .toLocalDate().equals(today);
     }
 
     /**
